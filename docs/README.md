@@ -32,6 +32,7 @@ wifi, not for architecture.
 4. `API-NOTES.md` — verified Deepgram and Vonage facts, and the traps that will cost you an hour
 5. `PHASES.md` — ordered build phases with exit criteria
 6. `ENV.md` — credentials, env vars, local dev loop
+7. `SCRIPT.md` — what the presenter says into the phone, beat by beat, and the fictional account
 
 ## Decisions already made, do not relitigate
 

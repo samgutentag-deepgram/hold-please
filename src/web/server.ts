@@ -24,12 +24,21 @@ const CONTENT_TYPES: Record<string, string> = {
 export type HttpHandler = (req: IncomingMessage, res: ServerResponse) => Promise<boolean>
 export type UpgradeHandler = (ws: WebSocket, req: IncomingMessage) => void
 
+export interface DashboardCommand {
+  type: string
+  [key: string]: unknown
+}
+
 export interface WebServerOptions {
   port: number
   host: string
   bus: Bus
   handlers?: HttpHandler[]
   upgrades?: Record<string, UpgradeHandler>
+  /** State the page needs before any event arrives: toggles, limits, the keyterm list. */
+  snapshot?: () => Record<string, unknown>
+  /** A command from the page. Return a reply frame, or nothing. */
+  onCommand?: (command: DashboardCommand) => Record<string, unknown> | undefined
 }
 
 export interface WebServer {
@@ -72,8 +81,22 @@ export function startWebServer(opts: WebServerOptions): Promise<WebServer> {
 
   dashboard.on('connection', (ws) => {
     // A late-joining browser gets the whole log so the page is never blank after a refresh.
-    ws.send(JSON.stringify({ type: 'replay', events: bus.log }))
+    ws.send(JSON.stringify({ type: 'replay', events: bus.log, snapshot: opts.snapshot?.() ?? {} }))
     ws.on('error', (err) => console.error('[web] dashboard socket error', err))
+    ws.on('message', (data) => {
+      let command: DashboardCommand
+      try {
+        command = JSON.parse(data.toString()) as DashboardCommand
+      } catch {
+        return
+      }
+      try {
+        const reply = opts.onCommand?.(command)
+        if (reply && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(reply))
+      } catch (err) {
+        console.error('[web] command failed', command.type, err)
+      }
+    })
   })
 
   const unsubscribe = bus.on((event: DemoEvent) => {

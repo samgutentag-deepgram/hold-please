@@ -72,6 +72,15 @@ because it is the centrepiece and because it is the one that proves the hard req
 `reconnected: false` while the uptime counter keeps ticking. Then read a code that failed a minute
 ago and watch it come back correct on the same call.
 
+**Status 2026-09-10: built, exit not yet demonstrated.** All seven toggles exist in
+`src/toggles/state.ts`, validated (eager can never exceed eot, in either order), broadcast as
+`toggle.changed`, and applied to the live socket through `stt.configure()` from `src/call.ts`.
+`multilingual` is the one exception: the model is a connection parameter, so it reconnects and says
+so with `reconnected: true`. The dashboard has the toggle row, keys 1 to 4 for the four switches,
+and the eager slider's maximum is bound to the eot slider. `naiveMode` is implemented in the loop as
+a 1200 ms silence timer with no barge-in. Beat 2 needs a live run with the code in
+`docs/SCRIPT.md` to close the exit criterion.
+
 ---
 
 ## Phase 5 — The other three beats
@@ -84,6 +93,12 @@ the UI.
 
 **Exit:** all four beats runnable back to back on one call, in the run-of-show order, inside 14
 minutes.
+
+**Status 2026-09-10: the mechanics exist, none of the beats have been run.** Barge-in with
+`text_spoken` on screen worked on the first live run of Phase 1. Eager speculation, the
+issued-versus-used counter, and the live threshold dials landed with Phase 4. The invalid
+threshold combination is unreachable from the UI and rejected by the store. What remains is
+rehearsal: `docs/SCRIPT.md` has the lines.
 
 ---
 
