@@ -1,8 +1,10 @@
 // The one customer the agent knows. Fictional, and shaped so the presenter has real questions
 // to ask: this month's balance, two months ago, the same month last year, why it changed.
 // The street on the service address is the beat 2 prop: the agent needs it before it will read the
-// account, and Flux hears "Ygnacio" as "Glacial" until keyterms tell it otherwise. Verified on the
-// Elgato on 2026-09-10, when three alphanumeric codes all transcribed correctly without help.
+// account, and Flux hears "Tuolumne" (too-AH-luh-mee) as "to alumni" until keyterms tell it
+// otherwise. Picked 2026-09-10 with scripts/keyterm-probe.mjs: three voices, three misses without
+// the keyterm, three hits with it. Ygnacio was the first choice and the keyterm did not take on a
+// human voice. Three alphanumeric codes all transcribed correctly without help, so no code gates.
 
 export interface BillingMonth {
   month: string
@@ -13,8 +15,8 @@ export interface BillingMonth {
 export const ACCOUNT = {
   holder: 'Sam Gutentag',
   accountNumber: '4471-9920-33',
-  serviceStreet: 'Ygnacio Valley Road',
-  serviceAddress: '2150 Ygnacio Valley Road, Walnut Creek',
+  serviceStreet: 'Tuolumne Street',
+  serviceAddress: '1440 Tuolumne Street, Modesto',
   /** Pocket prop. Not gating anything; alphanumerics transcribe fine on a good mic. */
   confirmationCode: 'A7-4K-92-Q',
   plan: 'Standard residential, flat rate',

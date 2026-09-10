@@ -49,6 +49,6 @@ test('naive mode strips keyterms and eager from what Flux is told, and multiling
 
 test('keyterms come from the env when set, with a sensible default', () => {
   assert.deepEqual(keytermsFromEnv('A7, 4K ,, Q'), ['A7', '4K', 'Q'])
-  assert.ok(keytermsFromEnv(undefined).includes('Ygnacio'))
+  assert.ok(keytermsFromEnv(undefined).includes('Tuolumne'))
   assert.ok(keytermsFromEnv('  ,  ').length > 0)
 })

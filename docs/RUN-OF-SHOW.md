@@ -35,8 +35,9 @@ volunteer to perform on cue. Triggering it with his own name removes the depende
 **Three honest caveats, in order of how much they matter:**
 
 1. **It may simply not fire.** Flux may transcribe "Gutentag" as an English proper noun and never
-   flag German. Untested. Do not write it into a rehearsal script until it has fired three times in
-   a row.
+   flag German. **First test, 2026-09-10, on Sam's voice: it did not fire.** A Spanish sentence did
+   flip the readout to ES, so the mechanism works and the surname does not. Do not write it into a
+   rehearsal script until it has fired three times in a row.
 2. **It requires the multilingual model.** `flux-general-multi` is a different model from
    `flux-general-en` and turn-detection behaviour may differ. All four beats depend on turn
    detection. **If the multi model degrades any beat, the beats win and the gag is cut.** Test this
@@ -78,11 +79,11 @@ speaking, so the room can see the barge-in land.
 
 ## Beat 2 — The confirmation code
 
-**On stage:** the presenter gives the street name on the account, "Ygnacio Valley Road". (Originally a
+**On stage:** the presenter gives the street name on the account, "Tuolumne Street". (Originally a
 confirmation code; changed 2026-09-10 after three alphanumeric codes all transcribed correctly with
 keyterms off. Flux handles letters and digits on a good mic; it needs help with words it has not seen.)
 
-**Broken:** the street comes back as a different word. "Ygnacio" becomes "Glacial", the agent reads
+**Broken:** the street comes back as different words. "Tuolumne" becomes "to alumni", the agent reads
 that back, and cannot find the account.
 
 **Fixed:** the presenter clicks one toggle that sends a `Configure` control message on the **already
