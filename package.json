@@ -1,0 +1,26 @@
+{
+  "name": "vonage-demo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Your Demo Works. Your Callers Don't. Live voice-agent failure demo for the Vonage x Deepgram Voice AI meetup, a16z Tech Week 2026",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.ts",
+    "start": "node --env-file-if-exists=.env src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-reporter=spec 'tests/**/*.test.ts'",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "@types/ws": "^8.18.1",
+    "typescript": "^7.0.2"
+  }
+}

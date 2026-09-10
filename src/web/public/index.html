@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Demo Works. Your Callers Don't.</title>
+<style>
+  /* Phase 0 shell. Phase 3 replaces this with the four-zone layout. Everything inline on purpose:
+     the room's network is not ours, so the page loads with zero external requests. */
+  :root {
+    --bg: #0b0d10;
+    --fg: #f4f6f8;
+    --dim: #8b949e;
+    --ok: #3fb950;
+    --warn: #f0b429;
+    --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 500 24px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 24px 32px;
+    gap: 16px;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+  h1 { margin: 0; font-size: 40px; letter-spacing: -0.01em; }
+  #status {
+    font-size: 22px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: var(--bad);
+    color: #000;
+    font-weight: 700;
+  }
+  #status[data-state="connected"] { background: var(--ok); }
+  #status[data-state="connecting"] { background: var(--warn); }
+  main { overflow: hidden; display: grid; place-items: center; }
+  #empty { color: var(--dim); font-size: 48px; text-align: center; }
+  #events {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    font: 20px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  #events li { display: grid; grid-template-columns: 9ch 1fr; gap: 16px; padding: 4px 0; border-bottom: 1px solid #1f242b; }
+  #events .t { color: var(--dim); text-align: right; }
+  footer { color: var(--dim); font-size: 18px; display: flex; gap: 24px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Your Demo Works. Your Callers Don't.</h1>
+    <span id="status" data-state="connecting">connecting</span>
+  </header>
+  <main>
+    <div id="empty">Waiting for a call</div>
+    <ul id="events" hidden></ul>
+  </main>
+  <footer>
+    <span id="count">0 events</span>
+    <span id="uptime">socket uptime 0s</span>
+  </footer>
+<script>
+  // Phase 0: prove the socket and the clock. The dashboard proper arrives in Phase 3.
+  const statusEl = document.getElementById('status')
+  const emptyEl = document.getElementById('empty')
+  const listEl = document.getElementById('events')
+  const countEl = document.getElementById('count')
+  const uptimeEl = document.getElementById('uptime')
+
+  let count = 0
+  let connectedAt = null
+  let backoff = 500
+
+  function setState(state) {
+    statusEl.dataset.state = state
+    statusEl.textContent = state
+  }
+
+  function render(event) {
+    count += 1
+    emptyEl.hidden = true
+    listEl.hidden = false
+    const li = document.createElement('li')
+    const t = document.createElement('span')
+    t.className = 't'
+    t.textContent = (event.t / 1000).toFixed(3) + 's'
+    const body = document.createElement('span')
+    const { t: _t, kind, ...rest } = event
+    body.textContent = kind + (Object.keys(rest).length ? '  ' + JSON.stringify(rest) : '')
+    li.append(t, body)
+    listEl.append(li)
+    li.scrollIntoView({ block: 'end' })
+    countEl.textContent = count + (count === 1 ? ' event' : ' events')
+  }
+
+  function connect() {
+    setState('connecting')
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const ws = new WebSocket(proto + '//' + location.host + '/ws/dashboard')
+
+    ws.addEventListener('open', () => {
+      setState('connected')
+      connectedAt = performance.now()
+      backoff = 500
+    })
+
+    ws.addEventListener('message', (msg) => {
+      let frame
+      try { frame = JSON.parse(msg.data) } catch { return }
+      if (frame.type === 'replay') {
+        listEl.replaceChildren()
+        count = 0
+        for (const event of frame.events) render(event)
+      } else if (frame.type === 'event') {
+        render(frame.event)
+      }
+    })
+
+    ws.addEventListener('close', () => {
+      // Degrade visibly and keep trying. Never leave the page looking frozen.
+      setState('disconnected')
+      connectedAt = null
+      setTimeout(connect, backoff)
+      backoff = Math.min(backoff * 2, 8000)
+    })
+
+    ws.addEventListener('error', () => ws.close())
+  }
+
+  setInterval(() => {
+    uptimeEl.textContent = connectedAt === null
+      ? 'socket down'
+      : 'socket uptime ' + Math.floor((performance.now() - connectedAt) / 1000) + 's'
+  }, 500)
+
+  connect()
+</script>
+</body>
+</html>
