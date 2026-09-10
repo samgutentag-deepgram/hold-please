@@ -74,7 +74,7 @@ export function loadConfig(): Config {
       model: optional('LLM_MODEL') ?? 'claude-opus-5',
     },
     demo: {
-      keyterms: keytermsFromEnv(optional('DEMO_KEYTERMS')),
+      keyterms: keytermsFromEnv(optional('DEMO_KEYTERMS'), optional('DEMO_CODE')),
     },
     local: {
       // avfoundation syntax: "none:default" for the default input, or ":N" for device index N.
