@@ -58,8 +58,10 @@ export class AgentLoop {
   private onTurn(info: TurnInfo): void {
     switch (info.event) {
       case 'StartOfTurn':
-        if (this.state === 'speaking' || this.state === 'thinking') this.bargeIn()
-        else this.setState('listening')
+        // The Flux agent guide's rule: interrupt if speaking, otherwise wait. Cutting the LLM
+        // while merely thinking dropped whole replies whenever the mic caught a stray word.
+        if (this.state === 'speaking') this.bargeIn()
+        else if (this.state !== 'thinking') this.setState('listening')
         return
       case 'EndOfTurn':
         if (info.transcript.trim()) void this.respond(info.transcript.trim())
