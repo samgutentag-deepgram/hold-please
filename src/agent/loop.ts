@@ -47,6 +47,7 @@ export class AgentLoop {
   start(): void {
     this.say('greeting', GREETING)
     this.history.push({ role: 'assistant', content: GREETING })
+    this.deps.bus.emit({ kind: 'agent.reply', turnId: 'greeting', text: GREETING })
   }
 
   private setState(state: AgentState): void {
@@ -144,12 +145,14 @@ export class AgentLoop {
       if (first) throw new Error('the model returned no text')
       tts.flush()
       this.history.push({ role: 'assistant', content: turn.spoken })
+      bus.emit({ kind: 'agent.reply', turnId, text: turn.spoken })
     } catch (err) {
       if (abort.signal.aborted) return
       bus.emit({ kind: 'socket.degraded', which: 'llm', detail: describeLlmError(err) })
       // Silence on stage reads as a crash. Say something.
       this.history.push({ role: 'assistant', content: FALLBACK_LINE })
       this.say(turnId, FALLBACK_LINE)
+      bus.emit({ kind: 'agent.reply', turnId, text: FALLBACK_LINE })
     } finally {
       if (this.current === turn && this.state !== 'speaking') this.current = null
     }
