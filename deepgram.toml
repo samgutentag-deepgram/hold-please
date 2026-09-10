@@ -1,0 +1,33 @@
+[meta]
+title = "Your Demo Works. Your Callers Don't."
+description = "Live voice-agent failure demo: break a Flux agent four ways on a real phone call and fix each one on the open socket"
+author = "Sam Gutentag <sam.gutentag@deepgram.com>"
+useCase = "flux"
+language = "typescript"
+framework = "none"
+sdk = "none"
+tags = ["flux", "flux-tts", "vonage", "voice-agent", "typescript"]
+
+[check]
+command = ["make check"]
+message = "Typecheck passed"
+
+[install]
+command = ["make install"]
+message = "Dependencies installed"
+
+[install.config]
+sample = "sample.env"
+output = ".env"
+
+[start]
+command = ["make start"]
+message = "Dashboard at http://127.0.0.1:3000"
+
+[test]
+command = ["make test"]
+message = "Tests passed"
+
+[clean]
+command = ["make clean"]
+message = "Dependencies removed"
