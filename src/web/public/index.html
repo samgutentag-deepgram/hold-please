@@ -38,10 +38,18 @@
 
   /* Toggles: visible, not prominent. The presenter hits them without looking; 1-4 on the keyboard. */
   #toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 15px; }
-  .tg { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--fg); font: 700 15px/1 system-ui, sans-serif; cursor: pointer; letter-spacing: 0.02em; }
-  .tg kbd { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
-  .tg[aria-pressed="true"] { border-color: var(--speaking); background: rgba(88, 166, 255, 0.15); }
-  .tg.danger[aria-pressed="true"] { border-color: var(--interrupted); background: rgba(248, 81, 73, 0.2); color: #ffd6d3; }
+  .sw { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font: 700 15px/1 system-ui, sans-serif; color: var(--fg); padding: 4px 6px 4px 4px; border-radius: 12px; }
+  .sw input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .sw .track { position: relative; width: 74px; height: 32px; border-radius: 999px; background: #2a3038; border: 2px solid var(--line); transition: background 120ms, border-color 120ms; flex: none; }
+  .sw .track::before { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--dim); transition: left 120ms, background 120ms; }
+  .sw .track::after { content: 'OFF'; position: absolute; right: 9px; top: 0; bottom: 0; display: flex; align-items: center; font: 800 11px/1 system-ui, sans-serif; letter-spacing: 0.08em; color: var(--dim); }
+  .sw input:checked + .track { background: var(--speaking); border-color: var(--speaking); }
+  .sw input:checked + .track::before { left: 45px; background: #000; }
+  .sw input:checked + .track::after { content: 'ON'; left: 11px; right: auto; color: #000; }
+  .sw.danger input:checked + .track { background: var(--interrupted); border-color: var(--interrupted); }
+  .sw input:focus-visible + .track { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .sw kbd { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
+  .sw.danger .lbl { color: #ffd6d3; }
   .sl { display: inline-flex; align-items: center; gap: 8px; color: var(--dim); font: 700 13px/1 system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
   .sl input { width: 130px; accent-color: var(--speaking); }
   .sl output { font: 700 15px/1 ui-monospace, Menlo, monospace; color: var(--fg); min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
@@ -86,10 +94,10 @@
   </header>
 
   <div id="toggles">
-    <button class="tg danger" data-toggle="naiveMode" aria-pressed="false"><kbd>1</kbd> naive mode</button>
-    <button class="tg" data-toggle="keyterms" aria-pressed="false"><kbd>2</kbd> keyterms</button>
-    <button class="tg" data-toggle="eagerEot" aria-pressed="false"><kbd>3</kbd> eager EOT</button>
-    <button class="tg" data-toggle="multilingual" aria-pressed="false"><kbd>4</kbd> multilingual</button>
+    <label class="sw danger"><input type="checkbox" data-toggle="naiveMode"><span class="track"></span><span class="lbl">naive mode</span><kbd>1</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="keyterms"><span class="track"></span><span class="lbl">keyterms</span><kbd>2</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="eagerEot"><span class="track"></span><span class="lbl">eager EOT</span><kbd>3</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="multilingual"><span class="track"></span><span class="lbl">multilingual</span><kbd>4</kbd></label>
     <label class="sl">eager <input type="range" data-toggle="eagerEotThreshold" min="0.3" max="0.9" step="0.05"><output>0.50</output></label>
     <label class="sl">eot <input type="range" data-toggle="eotThreshold" min="0.5" max="0.9" step="0.05"><output>0.70</output></label>
     <label class="sl">timeout <input type="range" data-toggle="eotTimeoutMs" min="500" max="10000" step="100"><output>5000</output></label>
@@ -137,14 +145,14 @@
   let toggles = null
   const specTurns = new Set()
   let specUsed = 0
-  const tgButtons = [...document.querySelectorAll('button.tg')]
+  const tgSwitches = [...document.querySelectorAll('.sw input[data-toggle]')]
   const tgSliders = [...document.querySelectorAll('input[type=range][data-toggle]')]
 
   function sendToggle(name, value) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'toggle', name, value })) }
 
   function renderToggles() {
     if (!toggles) return
-    for (const b of tgButtons) b.setAttribute('aria-pressed', String(!!toggles[b.dataset.toggle]))
+    for (const sw of tgSwitches) sw.checked = !!toggles[sw.dataset.toggle]
     for (const sl of tgSliders) {
       const name = sl.dataset.toggle
       // The UI enforces the one rule Flux enforces with a disconnect: eager can never exceed eot.
@@ -154,7 +162,11 @@
     }
   }
 
-  for (const b of tgButtons) b.addEventListener('click', () => toggles && sendToggle(b.dataset.toggle, !toggles[b.dataset.toggle]))
+  for (const sw of tgSwitches) sw.addEventListener('change', () => {
+    if (!toggles) return
+    sendToggle(sw.dataset.toggle, sw.checked)
+    sw.checked = !!toggles[sw.dataset.toggle]  // the server's toggle.changed flips it for real
+  })
   for (const sl of tgSliders) {
     sl.addEventListener('input', () => { sl.nextElementSibling.textContent = sl.dataset.toggle === 'eotTimeoutMs' ? sl.value : Number(sl.value).toFixed(2) })
     sl.addEventListener('change', () => {
@@ -164,9 +176,9 @@
     })
   }
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.target.tagName === 'INPUT' && e.target.type === 'range' || e.metaKey || e.ctrlKey || e.altKey) return
     const i = ['1', '2', '3', '4'].indexOf(e.key)
-    if (i >= 0) tgButtons[i].click()
+    if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
 
   let callStartedAt = null      // bus time of call.started, for socket uptime
