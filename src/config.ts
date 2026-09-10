@@ -1,3 +1,5 @@
+import { keytermsFromEnv } from './toggles/state.ts'
+
 // Env in one place. Only PORT and HOST are required to boot; everything else is read here but
 // checked by the module that needs it, so the dashboard can come up before any credential exists.
 
@@ -19,6 +21,9 @@ export interface Config {
     provider: string
     apiKey: string | undefined
     model: string
+  }
+  demo: {
+    keyterms: string[]
   }
   local: {
     micDevice: string
@@ -67,6 +72,9 @@ export function loadConfig(): Config {
       provider: optional('LLM_PROVIDER') ?? 'anthropic',
       apiKey: optional('LLM_API_KEY') ?? optional('ANTHROPIC_API_KEY'),
       model: optional('LLM_MODEL') ?? 'claude-opus-5',
+    },
+    demo: {
+      keyterms: keytermsFromEnv(optional('DEMO_KEYTERMS')),
     },
     local: {
       // avfoundation syntax: "none:default" for the default input, or ":N" for device index N.

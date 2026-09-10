@@ -4,6 +4,7 @@ import { startWebServer } from './web/server.ts'
 import { Call } from './call.ts'
 import { LocalAudioLeg } from './audio/local.ts'
 import { createVonageWebhooks, VONAGE_WS_PATH, VonageAudioLeg } from './telephony/vonage.ts'
+import { DEFAULT_TOGGLES, TOGGLE_LIMITS, ToggleStore } from './toggles/state.ts'
 
 // Degrade, never crash. An unhandled error on a projector is worse than a degraded state, so
 // both handlers log loudly and keep the process alive.
@@ -24,6 +25,7 @@ async function main(): Promise<void> {
   const config = loadConfig()
   const local = process.argv.includes('--local')
   let activeCall: Call | null = null
+  const toggles = new ToggleStore(bus)
 
   if (!config.deepgram.apiKey) {
     console.error('[config] DEEPGRAM_API_KEY is not set. The dashboard will run; calls will fail visibly.')
@@ -37,6 +39,16 @@ async function main(): Promise<void> {
     host: config.host,
     bus,
     handlers: [createVonageWebhooks({ publicUrl: () => config.publicUrl, bus })],
+    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms }),
+    onCommand: (command) => {
+      if (command.type === 'toggle') {
+        const result = toggles.set(String(command['name']), command['value'])
+        return result.ok
+          ? { type: 'toggles', toggles: result.toggles }
+          : { type: 'toggle.rejected', name: command['name'], reason: result.reason }
+      }
+      return { type: 'error', reason: `unknown command ${command.type}` }
+    },
     upgrades: {
       [VONAGE_WS_PATH]: (ws, req) => {
         if (activeCall) {
@@ -47,7 +59,7 @@ async function main(): Promise<void> {
         }
         const leg = new VonageAudioLeg(ws)
         const id = new URL(req.url ?? '/', 'http://localhost').searchParams.get('callId') ?? `vonage-${Date.now()}`
-        const call = new Call(id, leg, bus, config)
+        const call = new Call(id, leg, bus, config, toggles)
         activeCall = call
         leg.onClose(() => {
           if (activeCall === call) activeCall = null
@@ -73,7 +85,7 @@ async function main(): Promise<void> {
       muteWhileSpeaking: config.local.muteWhileSpeaking,
       isPlaying: () => activeCall?.playback.isPlaying() ?? false,
     })
-    const call = new Call('local', leg, bus, config)
+    const call = new Call('local', leg, bus, config, toggles)
     activeCall = call
     leg.onClose(() => {
       activeCall = null

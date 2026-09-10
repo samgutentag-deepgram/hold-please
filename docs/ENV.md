@@ -33,7 +33,8 @@ LOCAL_SPEAKER_DEVICE=-1              # --local only. audiotoolbox output index, 
 LOCAL_MUTE_WHILE_SPEAKING=0          # --local only. 1 drops mic audio while the agent talks (no headphones)
 ```
 
-`DEEPGRAM_TTS_VOICE` defaults to `flux-haley-en`. Any of the Flux TTS voices works.
+`DEMO_KEYTERMS` is the comma-separated list beat 2 pushes onto the live socket; it defaults to the
+confirmation code's characters plus the company name. `DEEPGRAM_TTS_VOICE` defaults to `flux-haley-en`. Any of the Flux TTS voices works.
 
 Never commit a key. `.env` is gitignored; verify that before the first commit that adds one.
 

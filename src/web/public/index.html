@@ -18,7 +18,7 @@
   body {
     background: var(--bg); color: var(--fg);
     font: 500 24px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-    display: grid; grid-template-rows: auto 1fr auto auto; gap: 20px;
+    display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 18px;
     padding: 24px 40px 20px; overflow: hidden;
   }
   header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
@@ -36,6 +36,17 @@
   #conn { font-size: 16px; color: var(--dim); }
   #conn[data-state="disconnected"] { color: var(--interrupted); font-weight: 700; }
 
+  /* Toggles: visible, not prominent. The presenter hits them without looking; 1-4 on the keyboard. */
+  #toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 15px; }
+  .tg { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--fg); font: 700 15px/1 system-ui, sans-serif; cursor: pointer; letter-spacing: 0.02em; }
+  .tg kbd { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
+  .tg[aria-pressed="true"] { border-color: var(--speaking); background: rgba(88, 166, 255, 0.15); }
+  .tg.danger[aria-pressed="true"] { border-color: var(--interrupted); background: rgba(248, 81, 73, 0.2); color: #ffd6d3; }
+  .sl { display: inline-flex; align-items: center; gap: 8px; color: var(--dim); font: 700 13px/1 system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+  .sl input { width: 130px; accent-color: var(--speaking); }
+  .sl output { font: 700 15px/1 ui-monospace, Menlo, monospace; color: var(--fg); min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
+  #rejected { color: var(--interrupted); font-weight: 700; font-size: 14px; }
+  #applied { color: var(--listening); font-weight: 700; font-size: 14px; }
   main { display: grid; grid-template-rows: 1fr 1fr; gap: 20px; min-height: 0; }
   .turn { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-height: 0; border-top: 2px solid var(--line); padding-top: 12px; }
   .who { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
@@ -74,6 +85,18 @@
     </div>
   </header>
 
+  <div id="toggles">
+    <button class="tg danger" data-toggle="naiveMode" aria-pressed="false"><kbd>1</kbd> naive mode</button>
+    <button class="tg" data-toggle="keyterms" aria-pressed="false"><kbd>2</kbd> keyterms</button>
+    <button class="tg" data-toggle="eagerEot" aria-pressed="false"><kbd>3</kbd> eager EOT</button>
+    <button class="tg" data-toggle="multilingual" aria-pressed="false"><kbd>4</kbd> multilingual</button>
+    <label class="sl">eager <input type="range" data-toggle="eagerEotThreshold" min="0.3" max="0.9" step="0.05"><output>0.50</output></label>
+    <label class="sl">eot <input type="range" data-toggle="eotThreshold" min="0.5" max="0.9" step="0.05"><output>0.70</output></label>
+    <label class="sl">timeout <input type="range" data-toggle="eotTimeoutMs" min="500" max="10000" step="100"><output>5000</output></label>
+    <span id="applied"></span>
+    <span id="rejected"></span>
+  </div>
+
   <main>
     <section class="turn">
       <div class="who">Caller</div>
@@ -96,6 +119,7 @@
     <div class="stat"><span class="k">EOT p50 / p90 / p95</span><span class="v" id="eotp">–</span></div>
     <div class="stat"><span class="k">LLM first token</span><span class="v" id="ttft">–<small> ms</small></span></div>
     <div class="stat"><span class="k">TTS first byte</span><span class="v" id="ttfb">–<small> ms</small></span></div>
+    <div class="stat"><span class="k">Speculative issued / used</span><span class="v" id="spec">0 / 0</span></div>
     <div class="stat"><span class="k">Socket uptime</span><span class="v" id="uptime">–</span></div>
     <div class="stat"><span class="k">Reconnects</span><span class="v" id="reconnects">0</span></div>
     <span id="degraded"></span>
@@ -106,7 +130,44 @@
   const $ = (id) => document.getElementById(id)
   const el = { conn: $('conn'), lang: $('lang'), state: $('state'), caller: $('caller'), agent: $('agent'),
     bar: $('bar').querySelector('i'), conf: $('conf'), eot: $('eot'), eotp: $('eotp'), ttft: $('ttft'), ttfb: $('ttfb'),
-    uptime: $('uptime'), reconnects: $('reconnects'), degraded: $('degraded'), events: $('events') }
+    uptime: $('uptime'), reconnects: $('reconnects'), degraded: $('degraded'), events: $('events'),
+    applied: $('applied'), rejected: $('rejected'), spec: $('spec') }
+
+  let ws = null
+  let toggles = null
+  const specTurns = new Set()
+  let specUsed = 0
+  const tgButtons = [...document.querySelectorAll('button.tg')]
+  const tgSliders = [...document.querySelectorAll('input[type=range][data-toggle]')]
+
+  function sendToggle(name, value) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'toggle', name, value })) }
+
+  function renderToggles() {
+    if (!toggles) return
+    for (const b of tgButtons) b.setAttribute('aria-pressed', String(!!toggles[b.dataset.toggle]))
+    for (const sl of tgSliders) {
+      const name = sl.dataset.toggle
+      // The UI enforces the one rule Flux enforces with a disconnect: eager can never exceed eot.
+      if (name === 'eagerEotThreshold') sl.max = String(toggles.eotThreshold)
+      sl.value = String(toggles[name])
+      sl.nextElementSibling.textContent = name === 'eotTimeoutMs' ? String(toggles[name]) : Number(toggles[name]).toFixed(2)
+    }
+  }
+
+  for (const b of tgButtons) b.addEventListener('click', () => toggles && sendToggle(b.dataset.toggle, !toggles[b.dataset.toggle]))
+  for (const sl of tgSliders) {
+    sl.addEventListener('input', () => { sl.nextElementSibling.textContent = sl.dataset.toggle === 'eotTimeoutMs' ? sl.value : Number(sl.value).toFixed(2) })
+    sl.addEventListener('change', () => {
+      const name = sl.dataset.toggle, value = Number(sl.value)
+      if (name === 'eotThreshold' && toggles && toggles.eagerEotThreshold > value) sendToggle('eagerEotThreshold', value)
+      sendToggle(name, value)
+    })
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return
+    const i = ['1', '2', '3', '4'].indexOf(e.key)
+    if (i >= 0) tgButtons[i].click()
+  })
 
   let callStartedAt = null      // bus time of call.started, for socket uptime
   let lastEventT = 0
@@ -149,11 +210,18 @@
         const cut = document.createElement('span'); cut.className = 'cut'; cut.textContent = '⟵ heard up to here'
         el.agent.append(cut)
         break
-      case 'llm.firstToken': ms(el.ttft, e.ttftMs); break
       case 'tts.firstByte': ms(el.ttfb, e.ttfbMs); break
       case 'socket.degraded': el.degraded.textContent = `${e.which} degraded: ${e.detail}`.slice(0, 120); el.degraded.classList.add('on'); break
       case 'socket.recovered': reconnects += e.attempts ? 1 : 0; el.reconnects.textContent = reconnects; el.degraded.classList.remove('on'); break
-      case 'config.applied': el.degraded.classList.remove('on'); break
+      case 'config.applied':
+        el.degraded.classList.remove('on')
+        el.applied.textContent = (e.reconnected ? 'RECONNECTED: ' : 'applied live, no reconnect: ') + e.fields.join(', ')
+        el.applied.style.color = e.reconnected ? 'var(--interrupted)' : 'var(--listening)'
+        clearTimeout(el.applied._t); el.applied._t = setTimeout(() => { el.applied.textContent = '' }, 6000)
+        break
+      case 'toggle.changed': if (toggles) { toggles[e.name] = e.value; renderToggles() } break
+      case 'llm.speculativeStart': specTurns.add(e.turnId); el.spec.textContent = `${specTurns.size} / ${specUsed}`; break
+      case 'llm.firstToken': if (specTurns.has(e.turnId)) { specUsed += 1; el.spec.textContent = `${specTurns.size} / ${specUsed}` } ms(el.ttft, e.ttftMs); break
     }
     logLines.push(JSON.stringify(e)); if (logLines.length > 200) logLines.shift()
     el.events.textContent = logLines.slice(-40).join('\n')
@@ -171,12 +239,19 @@
   let backoff = 500
   function connect() {
     el.conn.dataset.state = 'connecting'; el.conn.textContent = 'connecting'
-    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws/dashboard')
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws/dashboard')
     ws.addEventListener('open', () => { el.conn.dataset.state = 'connected'; el.conn.textContent = 'live'; backoff = 500 })
     ws.addEventListener('message', (msg) => {
       let frame; try { frame = JSON.parse(msg.data) } catch { return }
-      if (frame.type === 'replay') { for (const ev of frame.events) apply(ev) }
+      if (frame.type === 'replay') {
+        specTurns.clear(); specUsed = 0
+        if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
+        for (const ev of frame.events) apply(ev)
+        if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
+      }
       else if (frame.type === 'event') apply(frame.event)
+      else if (frame.type === 'toggles') { toggles = { ...frame.toggles }; renderToggles(); el.rejected.textContent = '' }
+      else if (frame.type === 'toggle.rejected') { el.rejected.textContent = `${frame.name}: ${frame.reason}`; renderToggles() }
       if (lastEventT) clockOffset = performance.now() - lastEventT
     })
     ws.addEventListener('close', () => {
