@@ -4,6 +4,7 @@ import { now } from './clock.ts'
 // Additions to the spec's list, each with a reason:
 //   process.started  the one event a process can emit before a call exists (Phase 0 exit criterion)
 //   agent.state      the state pill needs an explicit source rather than inferring from other events
+//   agent.reply      what the agent said, once per turn, so the transcript zone can show both sides
 //   socket.degraded  gained 'llm' as a `which`, because a slow or failed LLM degrades the same way
 //   socket.recovered the banner needs a reason to go away; a reconnect is not a config.applied
 export type AgentState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'interrupted'
@@ -13,6 +14,7 @@ export type DemoEvent =
   | { t: number; kind: 'call.started'; callId: string }
   | { t: number; kind: 'call.ended'; callId: string }
   | { t: number; kind: 'agent.state'; state: AgentState }
+  | { t: number; kind: 'agent.reply'; turnId: string; text: string }
   | { t: number; kind: 'stt.startOfTurn' }
   | { t: number; kind: 'stt.update'; text: string; eotConfidence: number }
   | { t: number; kind: 'stt.eagerEndOfTurn'; text: string }

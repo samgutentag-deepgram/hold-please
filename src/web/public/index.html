@@ -5,142 +5,186 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your Demo Works. Your Callers Don't.</title>
 <style>
-  /* Phase 0 shell. Phase 3 replaces this with the four-zone layout. Everything inline on purpose:
-     the room's network is not ours, so the page loads with zero external requests. */
+  /* First cut of the four-zone layout from docs/SPEC.md. Everything inline on purpose: the
+     room's network is not ours, so the page loads with zero external requests.
+     Zones: 1 transcript (dominant), 2 state pill, 3 confidence bar, 4 stats strip. */
   :root {
-    --bg: #0b0d10;
-    --fg: #f4f6f8;
-    --dim: #8b949e;
-    --ok: #3fb950;
-    --warn: #f0b429;
-    --bad: #f85149;
+    --bg: #0b0d10; --fg: #f4f6f8; --dim: #8b949e; --line: #1f242b;
+    --listening: #3fb950; --thinking: #f0b429; --speaking: #58a6ff; --interrupted: #f85149; --idle: #6e7681;
+    --caller: #f4f6f8; --agent: #79c0ff;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--bg);
-    color: var(--fg);
+    background: var(--bg); color: var(--fg);
     font: 500 24px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    padding: 24px 32px;
-    gap: 16px;
+    display: grid; grid-template-rows: auto 1fr auto auto; gap: 20px;
+    padding: 24px 40px 20px; overflow: hidden;
   }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
-  h1 { margin: 0; font-size: 40px; letter-spacing: -0.01em; }
-  #status {
-    font-size: 22px;
-    padding: 6px 16px;
-    border-radius: 999px;
-    background: var(--bad);
-    color: #000;
-    font-weight: 700;
+  header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; color: var(--dim); font-weight: 600; }
+  .right { display: flex; align-items: center; gap: 18px; }
+  #lang { font: 700 20px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); text-transform: uppercase; }
+  #state {
+    font: 800 30px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 12px 28px; border-radius: 999px; color: #000; background: var(--idle); min-width: 240px; text-align: center;
   }
-  #status[data-state="connected"] { background: var(--ok); }
-  #status[data-state="connecting"] { background: var(--warn); }
-  main { overflow: hidden; display: grid; place-items: center; }
-  #empty { color: var(--dim); font-size: 48px; text-align: center; }
-  #events {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    font: 20px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  #events li { display: grid; grid-template-columns: 9ch 1fr; gap: 16px; padding: 4px 0; border-bottom: 1px solid #1f242b; }
-  #events .t { color: var(--dim); text-align: right; }
-  footer { color: var(--dim); font-size: 18px; display: flex; gap: 24px; }
+  #state[data-state="listening"] { background: var(--listening); }
+  #state[data-state="thinking"] { background: var(--thinking); }
+  #state[data-state="speaking"] { background: var(--speaking); }
+  #state[data-state="interrupted"] { background: var(--interrupted); }
+  #conn { font-size: 16px; color: var(--dim); }
+  #conn[data-state="disconnected"] { color: var(--interrupted); font-weight: 700; }
+
+  main { display: grid; grid-template-rows: 1fr 1fr; gap: 20px; min-height: 0; }
+  .turn { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-height: 0; border-top: 2px solid var(--line); padding-top: 12px; }
+  .who { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+  .text { font-size: clamp(34px, 4.2vw, 64px); line-height: 1.15; font-weight: 700; overflow: hidden; text-wrap: balance; }
+  #caller { color: var(--caller); }
+  #caller.interim { color: var(--dim); font-weight: 500; }
+  #agent { color: var(--agent); }
+  #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
+  .empty { color: var(--dim); font-weight: 500; }
+
+  .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; }
+  .bar-label { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  #bar { height: 28px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
+  #bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #1b998b, #3fb950); transition: width 120ms linear; }
+  #bar b { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--thinking); left: 70%; }
+  #conf { font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+
+  footer { display: flex; flex-wrap: wrap; gap: 28px 40px; align-items: baseline; font-variant-numeric: tabular-nums; }
+  .stat { display: grid; gap: 2px; }
+  .stat .k { font: 700 13px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+  .stat .v { font: 700 26px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .stat .v small { font-size: 14px; color: var(--dim); font-weight: 500; }
+  #degraded { display: none; background: var(--interrupted); color: #000; font-weight: 800; padding: 10px 16px; border-radius: 10px; }
+  #degraded.on { display: block; }
+  details { margin-left: auto; font-size: 14px; color: var(--dim); }
+  details pre { max-height: 160px; overflow: auto; margin: 6px 0 0; font-size: 12px; line-height: 1.3; color: var(--dim); }
 </style>
 </head>
 <body>
   <header>
     <h1>Your Demo Works. Your Callers Don't.</h1>
-    <span id="status" data-state="connecting">connecting</span>
+    <div class="right">
+      <span id="conn" data-state="connecting">connecting</span>
+      <span id="lang"></span>
+      <span id="state" data-state="idle">waiting</span>
+    </div>
   </header>
+
   <main>
-    <div id="empty">Waiting for a call</div>
-    <ul id="events" hidden></ul>
+    <section class="turn">
+      <div class="who">Caller</div>
+      <div id="caller" class="text empty">Waiting for a call</div>
+    </section>
+    <section class="turn">
+      <div class="who">Agent</div>
+      <div id="agent" class="text empty"></div>
+    </section>
   </main>
+
+  <div class="bar-wrap">
+    <span class="bar-label">End of turn confidence</span>
+    <div id="bar"><i></i><b title="eot_threshold"></b></div>
+    <span id="conf">0.00</span>
+  </div>
+
   <footer>
-    <span id="count">0 events</span>
-    <span id="uptime">socket uptime 0s</span>
+    <div class="stat"><span class="k">End of turn</span><span class="v" id="eot">–<small> ms</small></span></div>
+    <div class="stat"><span class="k">EOT p50 / p90 / p95</span><span class="v" id="eotp">–</span></div>
+    <div class="stat"><span class="k">LLM first token</span><span class="v" id="ttft">–<small> ms</small></span></div>
+    <div class="stat"><span class="k">TTS first byte</span><span class="v" id="ttfb">–<small> ms</small></span></div>
+    <div class="stat"><span class="k">Socket uptime</span><span class="v" id="uptime">–</span></div>
+    <div class="stat"><span class="k">Reconnects</span><span class="v" id="reconnects">0</span></div>
+    <span id="degraded"></span>
+    <details><summary>event log</summary><pre id="events"></pre></details>
   </footer>
+
 <script>
-  // Phase 0: prove the socket and the clock. The dashboard proper arrives in Phase 3.
-  const statusEl = document.getElementById('status')
-  const emptyEl = document.getElementById('empty')
-  const listEl = document.getElementById('events')
-  const countEl = document.getElementById('count')
-  const uptimeEl = document.getElementById('uptime')
+  const $ = (id) => document.getElementById(id)
+  const el = { conn: $('conn'), lang: $('lang'), state: $('state'), caller: $('caller'), agent: $('agent'),
+    bar: $('bar').querySelector('i'), conf: $('conf'), eot: $('eot'), eotp: $('eotp'), ttft: $('ttft'), ttfb: $('ttfb'),
+    uptime: $('uptime'), reconnects: $('reconnects'), degraded: $('degraded'), events: $('events') }
 
-  let count = 0
-  let connectedAt = null
+  let callStartedAt = null      // bus time of call.started, for socket uptime
+  let lastEventT = 0
+  let reconnects = 0
+  const eotSamples = []
+  const logLines = []
+
+  function ms(node, value) { node.innerHTML = Math.round(value) + '<small> ms</small>' }
+  function pct(arr, p) { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))] }
+
+  function setCaller(text, interim) {
+    el.caller.textContent = text || (interim ? '…' : '')
+    el.caller.classList.toggle('interim', !!interim)
+    el.caller.classList.remove('empty')
+  }
+
+  function apply(e) {
+    lastEventT = e.t
+    switch (e.kind) {
+      case 'call.started': callStartedAt = e.t; el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
+      case 'call.ended': callStartedAt = null; el.state.dataset.state = 'idle'; el.state.textContent = 'call ended'; break
+      case 'agent.state': el.state.dataset.state = e.state; el.state.textContent = e.state; break
+      case 'stt.update':
+        el.bar.style.width = Math.round(e.eotConfidence * 100) + '%'
+        el.conf.textContent = e.eotConfidence.toFixed(2)
+        if (e.text) setCaller(e.text, true)
+        break
+      case 'stt.startOfTurn': el.caller.classList.remove('empty'); break
+      case 'stt.endOfTurn':
+        setCaller(e.text, false)
+        ms(el.eot, e.latencyMs)
+        eotSamples.push(e.latencyMs)
+        el.eotp.textContent = `${pct(eotSamples, 0.5)} / ${pct(eotSamples, 0.9)} / ${pct(eotSamples, 0.95)}`
+        break
+      case 'stt.languages': el.lang.textContent = e.languages.join(' '); break
+      case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); break
+      case 'tts.interrupt':
+        el.agent.innerHTML = ''
+        el.agent.append(document.createTextNode(e.textSpoken || '(cut before a word was heard)'))
+        const cut = document.createElement('span'); cut.className = 'cut'; cut.textContent = '⟵ heard up to here'
+        el.agent.append(cut)
+        break
+      case 'llm.firstToken': ms(el.ttft, e.ttftMs); break
+      case 'tts.firstByte': ms(el.ttfb, e.ttfbMs); break
+      case 'socket.degraded': el.degraded.textContent = `${e.which} degraded: ${e.detail}`.slice(0, 120); el.degraded.classList.add('on'); break
+      case 'socket.recovered': reconnects += e.attempts ? 1 : 0; el.reconnects.textContent = reconnects; el.degraded.classList.remove('on'); break
+      case 'config.applied': el.degraded.classList.remove('on'); break
+    }
+    logLines.push(JSON.stringify(e)); if (logLines.length > 200) logLines.shift()
+    el.events.textContent = logLines.slice(-40).join('\n')
+  }
+
+  // Uptime ticks off the bus clock offset so it keeps counting between events.
+  let clockOffset = null // browser now - bus t
+  setInterval(() => {
+    if (callStartedAt === null || clockOffset === null) { el.uptime.textContent = '–'; return }
+    const busNow = performance.now() - clockOffset
+    const s = Math.max(0, Math.floor((busNow - callStartedAt) / 1000))
+    el.uptime.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }, 250)
+
   let backoff = 500
-
-  function setState(state) {
-    statusEl.dataset.state = state
-    statusEl.textContent = state
-  }
-
-  function render(event) {
-    count += 1
-    emptyEl.hidden = true
-    listEl.hidden = false
-    const li = document.createElement('li')
-    const t = document.createElement('span')
-    t.className = 't'
-    t.textContent = (event.t / 1000).toFixed(3) + 's'
-    const body = document.createElement('span')
-    const { t: _t, kind, ...rest } = event
-    body.textContent = kind + (Object.keys(rest).length ? '  ' + JSON.stringify(rest) : '')
-    li.append(t, body)
-    listEl.append(li)
-    li.scrollIntoView({ block: 'end' })
-    countEl.textContent = count + (count === 1 ? ' event' : ' events')
-  }
-
   function connect() {
-    setState('connecting')
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(proto + '//' + location.host + '/ws/dashboard')
-
-    ws.addEventListener('open', () => {
-      setState('connected')
-      connectedAt = performance.now()
-      backoff = 500
-    })
-
+    el.conn.dataset.state = 'connecting'; el.conn.textContent = 'connecting'
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws/dashboard')
+    ws.addEventListener('open', () => { el.conn.dataset.state = 'connected'; el.conn.textContent = 'live'; backoff = 500 })
     ws.addEventListener('message', (msg) => {
-      let frame
-      try { frame = JSON.parse(msg.data) } catch { return }
-      if (frame.type === 'replay') {
-        listEl.replaceChildren()
-        count = 0
-        for (const event of frame.events) render(event)
-      } else if (frame.type === 'event') {
-        render(frame.event)
-      }
+      let frame; try { frame = JSON.parse(msg.data) } catch { return }
+      if (frame.type === 'replay') { for (const ev of frame.events) apply(ev) }
+      else if (frame.type === 'event') apply(frame.event)
+      if (lastEventT) clockOffset = performance.now() - lastEventT
     })
-
     ws.addEventListener('close', () => {
-      // Degrade visibly and keep trying. Never leave the page looking frozen.
-      setState('disconnected')
-      connectedAt = null
-      setTimeout(connect, backoff)
-      backoff = Math.min(backoff * 2, 8000)
+      el.conn.dataset.state = 'disconnected'; el.conn.textContent = 'dashboard socket down'
+      setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 8000)
     })
-
     ws.addEventListener('error', () => ws.close())
   }
-
-  setInterval(() => {
-    uptimeEl.textContent = connectedAt === null
-      ? 'socket down'
-      : 'socket uptime ' + Math.floor((performance.now() - connectedAt) / 1000) + 's'
-  }, 500)
-
   connect()
 </script>
 </body>
