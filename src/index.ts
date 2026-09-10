@@ -69,6 +69,7 @@ async function main(): Promise<void> {
   if (local) {
     const leg = new LocalAudioLeg({
       micDevice: config.local.micDevice,
+      speakerDeviceIndex: config.local.speakerDeviceIndex,
       muteWhileSpeaking: config.local.muteWhileSpeaking,
       isPlaying: () => activeCall?.playback.isPlaying() ?? false,
     })
@@ -77,7 +78,7 @@ async function main(): Promise<void> {
     leg.onClose(() => {
       activeCall = null
     })
-    console.error(`[local] microphone ${config.local.micDevice}, speakers via ffmpeg. Wear headphones or set LOCAL_MUTE_WHILE_SPEAKING=1.`)
+    console.error(`[local] microphone ${config.local.micDevice}, speaker device ${config.local.speakerDeviceIndex === -1 ? 'system default' : config.local.speakerDeviceIndex}. Wear headphones or set LOCAL_MUTE_WHILE_SPEAKING=1.`)
     leg.start()
     await call.start()
   }
