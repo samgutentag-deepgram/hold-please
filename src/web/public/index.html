@@ -24,7 +24,13 @@
   header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
   h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; color: var(--dim); font-weight: 600; }
   .right { display: flex; align-items: center; gap: 18px; }
-  #lang { font: 700 20px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); text-transform: uppercase; }
+  /* Language readout: per turn, dominant first, from TurnInfo.languages on flux-general-multi.
+     Flux does not report a language per word, so this is the honest granularity. */
+  #lang { display: flex; gap: 6px; align-items: center; }
+  #lang span { font: 800 16px/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; border: 2px solid var(--line); color: var(--dim); }
+  #lang span:first-child { color: var(--fg); border-color: var(--fg); font-size: 20px; }
+  #lang.changed span:first-child { animation: langflash 1.2s ease-out; }
+  @keyframes langflash { 0% { background: var(--thinking); color: #000; } 100% { background: transparent; } }
   #state {
     font: 800 30px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
     padding: 12px 28px; border-radius: 999px; color: #000; background: var(--idle); min-width: 240px; text-align: center;
@@ -199,7 +205,6 @@
   function apply(e) {
     lastEventT = e.t
     switch (e.kind) {
-      case 'call.started': callStartedAt = e.t; el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
       case 'call.ended': callStartedAt = null; el.state.dataset.state = 'idle'; el.state.textContent = 'call ended'; break
       case 'agent.state': el.state.dataset.state = e.state; el.state.textContent = e.state; break
       case 'stt.update':
@@ -214,7 +219,11 @@
         eotSamples.push(e.latencyMs)
         el.eotp.textContent = `${pct(eotSamples, 0.5)} / ${pct(eotSamples, 0.9)} / ${pct(eotSamples, 0.95)}`
         break
-      case 'stt.languages': el.lang.textContent = e.languages.join(' '); break
+      case 'stt.languages':
+        el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
+        el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
+        break
+      case 'call.started': el.lang.replaceChildren(); callStartedAt = e.t; el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
       case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); break
       case 'tts.interrupt':
         el.agent.innerHTML = ''
