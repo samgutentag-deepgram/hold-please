@@ -29,6 +29,7 @@ LLM_API_KEY=                 # or ANTHROPIC_API_KEY
 LLM_MODEL=claude-opus-5      # swap for claude-haiku-4-5 if first-token time is too slow on stage
 
 LOCAL_MIC_DEVICE=none:default        # --local only. avfoundation syntax; ":2" picks device index 2
+LOCAL_SPEAKER_DEVICE=-1              # --local only. audiotoolbox output index, -1 = system default
 LOCAL_MUTE_WHILE_SPEAKING=0          # --local only. 1 drops mic audio while the agent talks (no headphones)
 ```
 
@@ -48,7 +49,9 @@ npm run dev -- --local
 
 It needs `ffmpeg` on the path (Homebrew's build has both `avfoundation` capture and the
 `audiotoolbox` output). List capture devices with
-`ffmpeg -f avfoundation -list_devices true -i ""`. Wear headphones, or the agent will hear itself
+`ffmpeg -f avfoundation -list_devices true -i ""` and output devices with
+`ffmpeg -f lavfi -i anullsrc -t 0.01 -f audiotoolbox -list_devices true -`. The two lists use different
+indexes, and both shift when a USB device is plugged or unplugged, so re-list after changing gear. Wear headphones, or the agent will hear itself
 and barge in on its own reply; `LOCAL_MUTE_WHILE_SPEAKING=1` is the no-headphones fallback, at the
 cost of not being able to test barge-in.
 

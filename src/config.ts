@@ -22,6 +22,7 @@ export interface Config {
   }
   local: {
     micDevice: string
+    speakerDeviceIndex: number
     muteWhileSpeaking: boolean
   }
 }
@@ -70,6 +71,9 @@ export function loadConfig(): Config {
     local: {
       // avfoundation syntax: "none:default" for the default input, or ":N" for device index N.
       micDevice: optional('LOCAL_MIC_DEVICE') ?? 'none:default',
+      // audiotoolbox device index; -1 is the system default output. List with:
+      //   ffmpeg -f lavfi -i anullsrc -t 0.01 -f audiotoolbox -list_devices true -
+      speakerDeviceIndex: Number.parseInt(optional('LOCAL_SPEAKER_DEVICE') ?? '-1', 10),
       muteWhileSpeaking: flag('LOCAL_MUTE_WHILE_SPEAKING', false),
     },
   }

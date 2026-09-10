@@ -14,6 +14,7 @@ type Player = ChildProcessByStdio<Writable, null, Readable>
 
 export interface LocalLegOptions {
   micDevice: string
+  speakerDeviceIndex: number
   muteWhileSpeaking: boolean
   isPlaying: () => boolean
 }
@@ -88,7 +89,7 @@ export class LocalAudioLeg implements AudioLeg {
       [
         '-hide_banner', '-loglevel', 'error',
         '-f', 's16le', '-ar', String(SAMPLE_RATE), '-ac', '1', '-i', 'pipe:0',
-        '-f', 'audiotoolbox', '-',
+        '-f', 'audiotoolbox', '-audio_device_index', String(this.opts.speakerDeviceIndex), '-',
       ],
       { stdio: ['pipe', 'ignore', 'pipe'] },
     )
