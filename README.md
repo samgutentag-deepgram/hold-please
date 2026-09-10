@@ -50,14 +50,23 @@ npm run dev             # dashboard at http://127.0.0.1:3000
 npm run check           # typecheck and tests
 ```
 
+Runtime dependencies are `ws`, `@anthropic-ai/sdk`, and, for `--local` only, `ffmpeg` on the path.
 Vonage needs to reach the webhooks from the public internet, so run something like ngrok and put
 its URL in `PUBLIC_URL`. `docs/ENV.md` has the full list and a local mic-and-speaker mode for
 developing without a phone.
 
 ## Status
 
-Phase 0 of 7. The scaffold runs; the spine does not exist yet. `docs/PHASES.md` has each phase with
-an exit criterion you can demonstrate, and `docs/README.md` has the read order for everything else.
+Phase 1 of 7 is built and waiting on credentials to be exercised. The spine exists: audio in from
+Vonage or the local microphone, Flux STT, one LLM turn, Flux TTS out, barge-in with `text_spoken`.
+`docs/PHASES.md` has each phase with an exit criterion you can demonstrate, and `docs/README.md`
+has the read order for everything else.
+
+Develop without a phone:
+
+```bash
+npm run dev -- --local      # microphone in, speakers out, everything else identical
+```
 
 ## Docs
 

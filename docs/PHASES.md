@@ -34,6 +34,14 @@ phase can proceed against a mic and speakers rather than a phone.
 **Exit:** call a real number, say three things, get three sensible spoken answers, hang up. No
 crashes, no orphaned sockets.
 
+**Status 2026-09-10: built, not yet exercised against the APIs.** The spine exists end to end: audio
+leg (Vonage or `--local`), Flux STT with live `configure()`, the LLM turn, Flux TTS with `Interrupt`
+and the playback clock it needs, barge-in, and a canned line when the LLM fails. Typechecks, and the
+socket protocol is covered by tests against a fake websocket. What it has not had is a key: no
+`DEEPGRAM_API_KEY` or `ANTHROPIC_API_KEY` was available in the build session, so the first
+`npm run dev -- --local` with real credentials is the next step, and the real-number exit criterion
+still waits on the Vonage account.
+
 ---
 
 ## Phase 2 — Instrumentation

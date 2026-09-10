@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer, WebSocket } from 'ws'
 import type { Bus, DemoEvent } from '../bus/events.ts'
 
-// One port, three jobs: the dashboard page, the dashboard's event socket, and later the Vonage
-// webhooks and audio socket. Audio never reaches the browser; this socket carries JSON events only.
+// One port, three jobs: the dashboard page and its event socket, the Vonage webhooks, and the
+// Vonage audio socket. Audio never reaches the browser; the dashboard socket carries JSON only.
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url))
 export const DASHBOARD_WS_PATH = '/ws/dashboard'
@@ -20,36 +20,57 @@ const CONTENT_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon',
 }
 
+/** Returns true when it handled the request. */
+export type HttpHandler = (req: IncomingMessage, res: ServerResponse) => Promise<boolean>
+export type UpgradeHandler = (ws: WebSocket, req: IncomingMessage) => void
+
+export interface WebServerOptions {
+  port: number
+  host: string
+  bus: Bus
+  handlers?: HttpHandler[]
+  upgrades?: Record<string, UpgradeHandler>
+}
+
 export interface WebServer {
   server: Server
-  wss: WebSocketServer
   close(): Promise<void>
 }
 
-export function startWebServer(opts: { port: number; host: string; bus: Bus }): Promise<WebServer> {
+export function startWebServer(opts: WebServerOptions): Promise<WebServer> {
   const { port, host, bus } = opts
+  const handlers = opts.handlers ?? []
 
   const server = createServer((req, res) => {
-    handleHttp(req, res).catch((err: unknown) => {
+    handleHttp(req, res, handlers).catch((err: unknown) => {
       console.error('[web] request failed', req.method, req.url, err)
       if (!res.headersSent) sendText(res, 500, 'Something broke serving this page. The call is unaffected.')
       else res.end()
     })
   })
 
-  const wss = new WebSocketServer({ noServer: true })
+  const dashboard = new WebSocketServer({ noServer: true })
+  const upgrades = new Map<string, { wss: WebSocketServer; handler: UpgradeHandler }>()
+  for (const [path, handler] of Object.entries(opts.upgrades ?? {})) {
+    upgrades.set(path, { wss: new WebSocketServer({ noServer: true }), handler })
+  }
 
   server.on('upgrade', (req, socket, head) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
-    if (pathname !== DASHBOARD_WS_PATH) {
+    if (pathname === DASHBOARD_WS_PATH) {
+      dashboard.handleUpgrade(req, socket, head, (ws) => dashboard.emit('connection', ws, req))
+      return
+    }
+    const target = upgrades.get(pathname)
+    if (!target) {
       socket.write('HTTP/1.1 404 Not Found\r\n\r\n')
       socket.destroy()
       return
     }
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
+    target.wss.handleUpgrade(req, socket, head, (ws) => target.handler(ws, req))
   })
 
-  wss.on('connection', (ws) => {
+  dashboard.on('connection', (ws) => {
     // A late-joining browser gets the whole log so the page is never blank after a refresh.
     ws.send(JSON.stringify({ type: 'replay', events: bus.log }))
     ws.on('error', (err) => console.error('[web] dashboard socket error', err))
@@ -57,7 +78,7 @@ export function startWebServer(opts: { port: number; host: string; bus: Bus }): 
 
   const unsubscribe = bus.on((event: DemoEvent) => {
     const frame = JSON.stringify({ type: 'event', event })
-    for (const client of wss.clients) {
+    for (const client of dashboard.clients) {
       if (client.readyState === WebSocket.OPEN) client.send(frame)
     }
   })
@@ -69,12 +90,15 @@ export function startWebServer(opts: { port: number; host: string; bus: Bus }): 
       server.on('error', (err) => console.error('[web] server error', err))
       resolve({
         server,
-        wss,
         close: () =>
           new Promise<void>((done) => {
             unsubscribe()
-            for (const client of wss.clients) client.terminate()
-            wss.close()
+            for (const client of dashboard.clients) client.terminate()
+            dashboard.close()
+            for (const { wss } of upgrades.values()) {
+              for (const client of wss.clients) client.terminate()
+              wss.close()
+            }
             server.close(() => done())
           }),
       })
@@ -82,7 +106,11 @@ export function startWebServer(opts: { port: number; host: string; bus: Bus }): 
   })
 }
 
-async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleHttp(req: IncomingMessage, res: ServerResponse, handlers: HttpHandler[]): Promise<void> {
+  for (const handler of handlers) {
+    if (await handler(req, res)) return
+  }
+
   const { pathname } = new URL(req.url ?? '/', 'http://localhost')
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {
