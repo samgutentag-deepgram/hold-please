@@ -36,9 +36,10 @@ function transcribe(pcm, keyterms) {
   })
 }
 
-const KEYTERMS = ['Ygnacio', 'Ygnacio Valley Road', 'Gutentag', 'Harbor Light Electric']
+// KEYTERMS=Gough,Kearny node scripts/keyterm-probe.mjs "..."  overrides the list under test.
+const KEYTERMS = (process.env.KEYTERMS ?? 'Tuolumne,Tuolumne Street,Gutentag,Harbor Light Electric').split(',').map((s) => s.trim()).filter(Boolean)
 for (const phrase of phrases) {
-  for (const voice of ['flux-haley-en', 'flux-marcus-en']) {
+  for (const voice of (process.env.VOICES ?? 'flux-haley-en,flux-marcus-en').split(',')) {
     const pcm = await synth(phrase, voice)
     const off = await transcribe(pcm, [])
     const on = await transcribe(pcm, KEYTERMS)

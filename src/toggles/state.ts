@@ -110,7 +110,7 @@ export class ToggleStore {
 
 /** The keyterms beat 2 pushes onto the live socket. Tune in rehearsal; the env var overrides. */
 export function keytermsFromEnv(raw: string | undefined): string[] {
-  const fallback = ['Ygnacio', 'Ygnacio Valley Road', 'Gutentag', 'Harbor Light Electric']
+  const fallback = ['Tuolumne', 'Tuolumne Street', 'Gutentag', 'Harbor Light Electric']
   if (!raw) return fallback
   const terms = raw.split(',').map((s) => s.trim()).filter(Boolean)
   return terms.length ? terms : fallback
