@@ -47,6 +47,13 @@ volunteer to perform on cue. Triggering it with his own name removes the depende
 Implementation is already in the spec: the `stt.languages` event, sourced from the `languages`
 field on every `TurnInfo`, rendered as a small language code beside the state pill.
 
+**Granularity, checked 2026-09-10:** `flux-general-multi` reports `languages` per turn, sorted by
+word count. Words carry no language field, so the readout cannot color individual words; it shows
+the turn's languages as chips, dominant first, and flashes when the set changes. Probed with an
+English TTS voice saying "Guten Tag, my name is Sam Gutentag": the model reported `en` only and
+transcribed "Guten tag". The gag still needs a human voice to fire or not (`scripts/multi-probe.mjs`
+is the harness; toggle multilingual on and say the name).
+
 ---
 
 ## Beat 1 — Barge-in
