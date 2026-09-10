@@ -58,6 +58,12 @@ with letters and digits on a good mic. It does need help with words it has never
 test, "Gutentag" became "Guten Tag", "Voltera" became "Volterra", and "Ygnacio" became "Glacial."
 The street is the cleanest failure: a different word, and a failure every utility caller knows.
 
+Proof without a microphone: `node --env-file=.env scripts/keyterm-probe.mjs "I live on Ygnacio Valley Road."`
+synthesizes the phrase with Flux TTS and transcribes it with Flux STT, keyterms off and on. On
+2026-09-10 it gave "Ignacio" off and "Ygnacio" on, and "Guten Tag" off and "Gutentag" on, with two
+different voices. If a live run disagrees, the keyterms are not on the socket: check the green
+"applied live" line and the keyterm switch before blaming the model.
+
 If the phone codec makes codes fail on the real number, the code is still in the account as a
 pocket prop. Do not build the beat on it until it has failed ten times in a row on a real call.
 

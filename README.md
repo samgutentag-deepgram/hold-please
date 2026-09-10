@@ -55,6 +55,16 @@ Vonage needs to reach the webhooks from the public internet, so run something li
 its URL in `PUBLIC_URL`. `docs/ENV.md` has the full list and a local mic-and-speaker mode for
 developing without a phone.
 
+## Probes
+
+Two scripts under `scripts/` answer "does Flux do X" without a microphone, by synthesizing a phrase
+with Flux TTS and streaming it back into Flux STT:
+
+```bash
+node --env-file=.env scripts/keyterm-probe.mjs "I live on Ygnacio Valley Road."   # keyterms off vs on
+node --env-file=.env scripts/multi-probe.mjs "Guten Tag, my name is Sam."          # what flux-general-multi reports
+```
+
 ## Status
 
 Phase 1 of 7 is built and waiting on credentials to be exercised. The spine exists: audio in from
