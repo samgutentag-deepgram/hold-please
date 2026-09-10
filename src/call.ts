@@ -8,6 +8,7 @@ import { Llm } from './agent/llm.ts'
 import { AgentLoop } from './agent/loop.ts'
 import { SYSTEM_PROMPT } from './agent/prompt.ts'
 import type { ToggleName, Toggles, ToggleStore } from './toggles/state.ts'
+import { Recorder } from './debug/recorder.ts'
 
 // One call: one audio leg, one Flux STT socket, one Flux TTS socket, one LLM client, one loop.
 // The demo runs one of these at a time, and then it is over.
@@ -43,6 +44,7 @@ export class Call {
   private readonly config: Config
   private readonly toggles: ToggleStore
   private unsubscribeToggles: (() => void) | null = null
+  private recorder: Recorder | null = null
 
   constructor(id: string, leg: AudioLeg, bus: Bus, config: Config, toggles: ToggleStore) {
     this.id = id
@@ -64,8 +66,12 @@ export class Call {
     const llm = new Llm({ model: config.llm.model, system: SYSTEM_PROMPT, ...(config.llm.apiKey ? { apiKey: config.llm.apiKey } : {}) })
     this.loop = new AgentLoop({ bus, leg, stt: this.sttSocket, tts: this.tts, llm, playback: this.playback, toggles: () => toggles.get() })
 
+    if (process.env['RECORD'] !== '0') this.recorder = new Recorder(bus, id)
     // One forwarding listener that always targets the current socket, even after a swap.
-    leg.onAudio((pcm) => this.sttSocket.sendAudio(pcm))
+    leg.onAudio((pcm) => {
+      this.recorder?.audio(pcm)
+      this.sttSocket.sendAudio(pcm)
+    })
     leg.onClose((reason) => void this.end(reason))
   }
 
@@ -123,5 +129,6 @@ export class Call {
     this.loop.stop()
     await Promise.allSettled([this.stt.close(), this.tts.close(), this.leg.close()])
     this.bus.emit({ kind: 'call.ended', callId: this.id })
+    this.recorder?.close()
   }
 }

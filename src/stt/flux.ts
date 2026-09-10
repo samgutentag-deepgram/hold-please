@@ -2,6 +2,7 @@ import type { Bus } from '../bus/events.ts'
 import { now } from '../bus/clock.ts'
 import { BYTES_PER_SAMPLE, SAMPLE_RATE } from '../audio/leg.ts'
 import { BACKOFF_MS, OPEN, openWebSocket, type SocketFactory, type SocketLike } from '../net/socket.ts'
+import { debugLog } from '../debug/recorder.ts'
 
 // The Flux STT socket, /v2/listen. Verified against developers.deepgram.com on 2026-09-10:
 //   docs/flux/quickstart, docs/flux/state, docs/flux/configure, docs/flux/close-stream.
@@ -123,6 +124,7 @@ export class FluxStt {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const url = buildFluxUrl(this.params, this.baseUrl)
+      debugLog('flux stt connecting', { model: this.params.model, keyterms: this.params.keyterms, eot: this.params.eotThreshold, eager: this.params.eagerEotThreshold ?? null, timeout: this.params.eotTimeoutMs })
       const socket = this.createSocket(url, { Authorization: `Token ${this.opts.apiKey}` })
       this.socket = socket
       let settled = false
@@ -240,6 +242,7 @@ export class FluxStt {
           resolve(result)
         },
       }
+      debugLog('flux stt Configure sent', { message })
       this.socket!.send(JSON.stringify(message))
     })
   }
@@ -274,9 +277,11 @@ export class FluxStt {
         this.handleTurn(msg as unknown as TurnInfo)
         return
       case 'ConfigureSuccess':
+        debugLog('flux stt ConfigureSuccess', { msg })
         this.settlePendingConfigure({ ok: true })
         return
       case 'ConfigureFailure':
+        debugLog('flux stt ConfigureFailure', { msg })
         this.settlePendingConfigure({ ok: false, detail: String(msg['description'] ?? msg['message'] ?? 'ConfigureFailure') })
         return
       case 'Error':
@@ -303,6 +308,7 @@ export class FluxStt {
         break
       case 'EndOfTurn':
         this.bus.emit({ kind: 'stt.endOfTurn', text: info.transcript, latencyMs: this.endOfTurnLatency(info) })
+        debugLog('flux stt EndOfTurn words', { turn: info.turn_index, trigger: info.trigger ?? null, audioEnd: info.audio_window_end, words: info.words.map((w) => [w.word, w.confidence, w.start, w.end]) })
         break
     }
     if (info.languages && info.languages.length) {
