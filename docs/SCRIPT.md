@@ -1,7 +1,8 @@
 # Presenter script
 
 What to say into the phone, beat by beat, and what should happen. The account the agent knows is
-in `src/agent/account.ts`; the confirmation code is `A7-4K-92-Q`. Nothing here is fixed until it
+in `src/agent/account.ts`; the caller is verified by the street on the service address, Ygnacio
+Valley Road. Nothing here is fixed until it
 has failed on cue ten times in rehearsal (Phase 7). Treat this as the first draft to rehearse
 against, and update it with what actually works.
 
@@ -9,8 +10,9 @@ against, and update it with what actually works.
 
 The call is already up. Ask two ordinary questions so the room hears a working agent first.
 
-- "Hi, what's the balance on my account?" The agent asks for the confirmation code. Read it. It
-  reads it back, confirms, and gives the balance: 187 dollars and 42 cents, due October first.
+- "Hi, what's the balance on my account?" The agent asks for the street on your service address.
+  "Ygnacio Valley Road." It reads back what it heard, you confirm, and it gives the balance: 187
+  dollars and 42 cents, due October first. (Keyterms on for the warm-up, so this just works.)
 - "What was it two months ago?" July: 209 dollars and 74 cents.
 - "How does this month compare to the same month last year?" September 2025 was 160 dollars and
   5 cents, so about 27 dollars more, roughly 17 percent, with the rate increase in January and
@@ -36,30 +38,28 @@ waited politely. Or it stops and starts the explanation again from the top.
 Naive mode **off**. Same two lines. The audio cuts on your first word, the screen shows the exact
 words you heard, and the answer is the balance.
 
-## Beat 2, the confirmation code
+## Beat 2, the street name
 
-Naive mode off. Keyterms **off**. Start a fresh call or ask something that needs the account.
+Naive mode off. Keyterms **off**. Ask something that needs the account.
 
-- "What's the balance on my account?" The agent asks for the code.
-- Read it plainly at normal speed: "A seven, four K, nine two, Q."
+- "What's the balance on my account?" The agent asks for the street on your service address.
+- "Ygnacio Valley Road." Normal speed.
 
-Broken: the transcript shows words. The agent reads back what it heard, says it does not match,
-and asks again. Do not correct it.
+Broken: the transcript reads "Glacial Valley Road." The agent reads that back to you. Say "yes."
+It tells you there is no account on a street by that name and asks again. Do not correct it.
 
-Flip **keyterms on**. Watch the uptime counter keep ticking and `config.applied` land with no
-reconnect. Read the same code the same way. It matches. "Got it, I have your account."
+Flip **keyterms on**. Watch the uptime counter keep ticking and the green "applied live, no
+reconnect: keyterms" line land. Say "Ygnacio Valley Road" the same way. The transcript is right,
+the read-back is right, you say yes, and it gives the balance.
 
-If the code does not fail reliably without keyterms, change the code, not the script. Set
-`DEMO_CODE` in `.env` and restart; the keyterm list follows it. On the first live run,
-`A7-4K-92-Q` transcribed correctly with keyterms off, so it is probably not the one. Candidates
-built from letters and digits that are also words, read at normal speed with no pauses:
+Why a street and not a code: on 2026-09-10, three alphanumeric codes (`A7-4K-92-Q`, `R2-B4-U8-Y`,
+`C4-U2-I8-B`) all transcribed correctly on the Elgato with keyterms off. Flux does not need help
+with letters and digits on a good mic. It does need help with words it has never seen. In the same
+test, "Gutentag" became "Guten Tag", "Voltera" became "Volterra", and "Ygnacio" became "Glacial."
+The street is the cleanest failure: a different word, and a failure every utility caller knows.
 
-- `R2-B4-U8-Y`, which wants to become "are to be for you ate why"
-- `C4-U2-I8-B`, "see for you too I ate be"
-- `Y2-R4-U0-Q`, "why to are for you oh queue"
-
-Test each five times with keyterms off, then five with keyterms on. Keep the one with the widest
-gap. The keyterms are the code's groups (`R2`, `B4`, `U8`, `Y`), which is what the toggle sends.
+If the phone codec makes codes fail on the real number, the code is still in the account as a
+pocket prop. Do not build the beat on it until it has failed ten times in a row on a real call.
 
 ## Beat 3, the false start
 

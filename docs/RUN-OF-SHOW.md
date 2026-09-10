@@ -71,15 +71,15 @@ speaking, so the room can see the barge-in land.
 
 ## Beat 2 — The confirmation code
 
-**On stage:** the presenter reads a code down the phone. Use a string that fails deterministically
-in naive mode. Test candidates and pick one; do not assume.
+**On stage:** the presenter gives the street name on the account, "Ygnacio Valley Road". (Originally a
+confirmation code; changed 2026-09-10 after three alphanumeric codes all transcribed correctly with
+keyterms off. Flux handles letters and digits on a good mic; it needs help with words it has not seen.)
 
-**Broken:** the code comes back as words. "A7-4K-92-Q" becomes something like "eight seven for kay
-ninety two queue".
+**Broken:** the street comes back as a different word. "Ygnacio" becomes "Glacial", the agent reads
+that back, and cannot find the account.
 
 **Fixed:** the presenter clicks one toggle that sends a `Configure` control message on the **already
-open** Flux socket, adding keyterms. Reads the same code again. It comes back correct. Flux TTS
-then reads it back properly, because it handles alphanumerics correctly.
+open** Flux socket, adding keyterms. Says the same street again. It comes back correct, and the account opens.
 
 **What the app must show:** the transcript before and after, side by side or stacked, so the room
 sees the same input produce two different outputs. Also a small visible confirmation that the

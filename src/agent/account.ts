@@ -1,7 +1,8 @@
 // The one customer the agent knows. Fictional, and shaped so the presenter has real questions
 // to ask: this month's balance, two months ago, the same month last year, why it changed.
-// The confirmation code is the beat 2 prop: the agent needs it before it will read the account.
-// DEMO_CODE overrides it, so rehearsal can hunt for a code that fails without keyterms.
+// The street on the service address is the beat 2 prop: the agent needs it before it will read the
+// account, and Flux hears "Ygnacio" as "Glacial" until keyterms tell it otherwise. Verified on the
+// Elgato on 2026-09-10, when three alphanumeric codes all transcribed correctly without help.
 
 export interface BillingMonth {
   month: string
@@ -12,8 +13,10 @@ export interface BillingMonth {
 export const ACCOUNT = {
   holder: 'Sam Gutentag',
   accountNumber: '4471-9920-33',
-  confirmationCode: process.env['DEMO_CODE']?.trim() || 'A7-4K-92-Q',
-  serviceAddress: '505 Howard Street, Suite 100, San Francisco',
+  serviceStreet: 'Ygnacio Valley Road',
+  serviceAddress: '2150 Ygnacio Valley Road, Walnut Creek',
+  /** Pocket prop. Not gating anything; alphanumerics transcribe fine on a good mic. */
+  confirmationCode: 'A7-4K-92-Q',
   plan: 'Standard residential, flat rate',
   currentBalance: 187.42,
   dueDate: 'October 1',
@@ -47,8 +50,9 @@ export function renderAccount(): string {
   const rows = a.history.map((h) => `  ${h.month}: ${h.kwh} kilowatt hours, ${h.amount.toFixed(2)} dollars`).join('\n')
   return `Account holder: ${a.holder}
 Account number: ${a.accountNumber}
-Confirmation code (the caller must read this back correctly before you discuss the account): ${a.confirmationCode}
 Service address: ${a.serviceAddress}
+Street name used to verify the caller (they must say this street before you discuss the account): ${a.serviceStreet}
+Confirmation code, only if the caller volunteers one: ${a.confirmationCode}
 Plan: ${a.plan}
 Current balance: ${a.currentBalance.toFixed(2)} dollars, due ${a.dueDate}
 Autopay: ${a.autopay ? 'on' : 'off'}
