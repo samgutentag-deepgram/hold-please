@@ -1,6 +1,7 @@
 // The one customer the agent knows. Fictional, and shaped so the presenter has real questions
 // to ask: this month's balance, two months ago, the same month last year, why it changed.
 // The confirmation code is the beat 2 prop: the agent needs it before it will read the account.
+// DEMO_CODE overrides it, so rehearsal can hunt for a code that fails without keyterms.
 
 export interface BillingMonth {
   month: string
@@ -11,7 +12,7 @@ export interface BillingMonth {
 export const ACCOUNT = {
   holder: 'Sam Gutentag',
   accountNumber: '4471-9920-33',
-  confirmationCode: 'A7-4K-92-Q',
+  confirmationCode: process.env['DEMO_CODE']?.trim() || 'A7-4K-92-Q',
   serviceAddress: '505 Howard Street, Suite 100, San Francisco',
   plan: 'Standard residential, flat rate',
   currentBalance: 187.42,

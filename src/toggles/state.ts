@@ -109,8 +109,8 @@ export class ToggleStore {
 }
 
 /** The keyterms beat 2 pushes onto the live socket. Tune in rehearsal; the env var overrides. */
-export function keytermsFromEnv(raw: string | undefined): string[] {
-  const fallback = ['A7', '4K', '92', 'Q', 'Harbor Light Electric']
+export function keytermsFromEnv(raw: string | undefined, code: string = 'A7-4K-92-Q'): string[] {
+  const fallback = [...code.split('-').filter(Boolean), 'Harbor Light Electric']
   if (!raw) return fallback
   const terms = raw.split(',').map((s) => s.trim()).filter(Boolean)
   return terms.length ? terms : fallback

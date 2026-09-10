@@ -49,9 +49,17 @@ and asks again. Do not correct it.
 Flip **keyterms on**. Watch the uptime counter keep ticking and `config.applied` land with no
 reconnect. Read the same code the same way. It matches. "Got it, I have your account."
 
-If the code does not fail reliably in naive mode during rehearsal, change the code, not the
-script. Candidates that tend to fail: mixes of letters that sound like words (K, Q, U, B) and
-digits that sound like words (4, 2, 8).
+If the code does not fail reliably without keyterms, change the code, not the script. Set
+`DEMO_CODE` in `.env` and restart; the keyterm list follows it. On the first live run,
+`A7-4K-92-Q` transcribed correctly with keyterms off, so it is probably not the one. Candidates
+built from letters and digits that are also words, read at normal speed with no pauses:
+
+- `R2-B4-U8-Y`, which wants to become "are to be for you ate why"
+- `C4-U2-I8-B`, "see for you too I ate be"
+- `Y2-R4-U0-Q`, "why to are for you oh queue"
+
+Test each five times with keyterms off, then five with keyterms on. Keep the one with the widest
+gap. The keyterms are the code's groups (`R2`, `B4`, `U8`, `Y`), which is what the toggle sends.
 
 ## Beat 3, the false start
 
