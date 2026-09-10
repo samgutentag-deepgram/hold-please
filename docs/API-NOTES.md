@@ -1,6 +1,7 @@
 # API notes
 
-Verified against primary sources on 2026-08-18. **Re-verify before writing integration code**,
+Verified against primary sources on 2026-08-18 and re-verified 2026-09-10 while writing Phase 1.
+**Re-verify before touching integration code again**,
 because Flux TTS shipped 2026-08-12 and the stack has been moving. Check
 `developers.deepgram.com`, not blog posts. The docs have been correct; the blogs have been stale.
 
@@ -14,6 +15,11 @@ because Flux TTS shipped 2026-08-12 and the stack has been moving. Check
    **updatable mid-stream via the `Configure` control message with no reconnect**. Beat 2 depends
    entirely on this. If you find yourself reconnecting to apply keyterms, you have taken a wrong
    turn.
+   Verified 2026-09-10 against docs/flux/configure: the message is
+   `{"type":"Configure","keyterms":[...],"thresholds":{"eot_threshold":...,"eot_timeout_ms":...,"eager_eot_threshold":...}}`,
+   the server answers `ConfigureSuccess` or `ConfigureFailure`, **the keyterms list is replaced, not
+   merged**, an omitted field keeps its value, and an empty array clears. Up to 100 terms, no
+   weight syntax.
 4. **End-of-turn is 260ms at P50 but p90 is around 1s and p95 around 1.5s.** Design the UI to show
    the tail rather than just the median.
 
@@ -25,8 +31,10 @@ because Flux TTS shipped 2026-08-12 and the stack has been moving. Check
   external VAD
 - Every `Update` carries `end_of_turn_confidence`, arriving roughly 4 times per second
 - `TurnInfo` carries a `languages` field, which is the source for the language readout
-- Parameters: `eot_timeout_ms` (500 to 60000, default 5000), `eot_threshold` (0.5 to 0.9, default
-  0.7), `eager_eot_threshold` (0.3 to 0.9)
+- Parameters: `eot_timeout_ms` (500 to 60000, default 5000), `eot_threshold` (0.5 to 1.0, default
+  0.7), `eager_eot_threshold` (0.3 to 0.9). Auth is `Authorization: Token <key>`. Audio is binary
+  frames; 16 kHz linear16 is the recommended input
+- `EndOfTurn` carries `trigger`: `model`, `timeout`, or `manual`. Worth showing on the beat 4 bar
 - Eager tradeoff: 0.3 to 0.5 saves 150 to 250ms and costs 50 to 70% more LLM calls
 
 Docs: [configuration](https://developers.deepgram.com/docs/flux/configuration) Â·
@@ -38,8 +46,18 @@ Docs: [configuration](https://developers.deepgram.com/docs/flux/configuration) Â
 ## Flux TTS
 
 - Endpoint `/v2/speak`
-- **`Interrupt` server message carries `text_spoken`**, which is exactly what the caller heard
-  before cutting in. This single field is beat 1
+- **Barge-in is a round trip.** We send `Interrupt`; the server answers with **`SpeechInterrupted`**,
+  which carries `text_spoken`, exactly what the caller heard before cutting in. This single field is
+  beat 1. (Corrected 2026-09-10: earlier notes called the server message `Interrupt`. It is not.)
+- **`text_spoken` is only present if our `Interrupt` carried `playback_offset`**, in milliseconds from
+  the start of the *session's* audio, and each offset must advance past the previous one. Without it
+  the server cannot compute the split. `src/audio/playback.ts` tracks that number; do not reset it
+  per turn
+- Stop the audio locally first, then send `Interrupt`. Frames that arrive between the two were
+  already on the wire; discard them until `SpeechInterrupted` lands
+- The server closes an idle socket after 60 s (`NET-0004`). Send a websocket ping to keep it open
+- Text is sent as `Speak` messages, any chunk size, and `Flush` ends the turn. The server does not
+  insert whitespace between `Speak` chunks, so LLM tokens can go straight through
 - First audio as low as 80ms, and stays under 200ms **regardless of response length**, because it
   interleaves text and audio generation
 - Handles alphanumerics, account numbers, dates and currency correctly, which is the second half

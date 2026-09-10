@@ -8,7 +8,7 @@
 | Vonage API key and secret | Not provisioned | Comes with the account above |
 | Vonage application private key | Not provisioned | Voice API auth is JWT signed with an application private key, not the API secret |
 | Deepgram API key with **Flux TTS** entitlement | Unconfirmed | Flux TTS shipped 2026-08-12, so an older key may only carry Aura. Confirm the entitlement specifically. The free build tier ended 2026-09-12, so confirm the key still works in October rather than only during the free window |
-| LLM provider key | Not provisioned | One provider. Keep it boring |
+| LLM provider key | Not provisioned | Anthropic, via the official SDK. `ANTHROPIC_API_KEY` works directly; `LLM_API_KEY` is an alias |
 
 ## Env vars
 
@@ -24,18 +24,33 @@ DEEPGRAM_API_KEY=
 DEEPGRAM_STT_MODEL=flux-general-en
 DEEPGRAM_TTS_VOICE=
 
-LLM_PROVIDER=
-LLM_API_KEY=
-LLM_MODEL=
+LLM_PROVIDER=anthropic       # the only value this build accepts
+LLM_API_KEY=                 # or ANTHROPIC_API_KEY
+LLM_MODEL=claude-opus-5      # swap for claude-haiku-4-5 if first-token time is too slow on stage
+
+LOCAL_MIC_DEVICE=none:default        # --local only. avfoundation syntax; ":2" picks device index 2
+LOCAL_MUTE_WHILE_SPEAKING=0          # --local only. 1 drops mic audio while the agent talks (no headphones)
 ```
+
+`DEEPGRAM_TTS_VOICE` defaults to `flux-haley-en`. Any of the Flux TTS voices works.
 
 Never commit a key. `.env` is gitignored; verify that before the first commit that adds one.
 
 ## The local harness, so Phase 1 is not blocked
 
-Phase 1 needs audio in and audio out. It does not strictly need a phone. Build a `--local` mode
-that swaps the Vonage audio socket for microphone in and speaker out on the dev machine, keeping
-everything downstream identical.
+Phase 1 needs audio in and audio out. It does not strictly need a phone. `--local` swaps the
+Vonage audio socket for microphone in and speaker out on the dev machine, keeping everything
+downstream identical. Built 2026-09-10 in `src/audio/local.ts`:
+
+```bash
+npm run dev -- --local
+```
+
+It needs `ffmpeg` on the path (Homebrew's build has both `avfoundation` capture and the
+`audiotoolbox` output). List capture devices with
+`ffmpeg -f avfoundation -list_devices true -i ""`. Wear headphones, or the agent will hear itself
+and barge in on its own reply; `LOCAL_MUTE_WHILE_SPEAKING=1` is the no-headphones fallback, at the
+cost of not being able to test barge-in.
 
 This is worth the hour it costs. It unblocks phases 1 through 5 while the Vonage account is
 outstanding, and it stays useful afterwards as the fast iteration loop, since dialling a phone
