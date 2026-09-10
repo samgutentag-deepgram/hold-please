@@ -41,8 +41,9 @@ export class Llm {
         max_tokens: this.maxTokens,
         system: this.opts.system,
         messages,
-        // Voice replies need speed more than depth. Effort is the lever for that.
-        output_config: { effort: 'low' },
+        // Voice replies need speed more than depth. Effort is the lever for that, on the models
+        // that have one. Haiku 4.5 returns a 400 if it is sent.
+        ...(supportsEffort(this.opts.model) ? { output_config: { effort: 'low' as const } } : {}),
       },
       { signal, timeout: this.timeoutMs },
     )
@@ -59,6 +60,10 @@ export class Llm {
       throw err
     }
   }
+}
+
+export function supportsEffort(model: string): boolean {
+  return !/haiku/i.test(model)
 }
 
 export function describeLlmError(err: unknown): string {
