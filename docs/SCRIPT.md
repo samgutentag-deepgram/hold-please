@@ -1,59 +1,225 @@
-# Presenter script
+# Demo script
 
-What to say into the phone, beat by beat, and what should happen. The account the agent knows is
-in `src/agent/account.ts`; the caller is verified by the surname on the account, Gutentag. Nothing here is fixed until it
-has failed on cue ten times in rehearsal (Phase 7). Treat this as the first draft to rehearse
-against, and update it with what actually works.
+The twenty minutes, timed, with what to press, what to say, and what the room should be looking
+at. Written to be read from a phone in the wings and to be shot as a video with no audience. Two
+cuts: **Talk** is the full slot. **Video** is the same beats at about nine minutes; skip anything
+marked *talk only*.
 
-## Warm-up, before the slides close
+Rehearse against this, then change it to what actually worked. Nothing here is fixed until the
+beat has failed on cue ten times in a row.
 
-The call is already up. Ask two ordinary questions so the room hears a working agent first.
+## Before you walk up
 
-- "Hi, what's the balance on my account?" The agent asks for the last name on the account.
-  "Gutentag." It reads back what it heard, you confirm, and it gives the balance: 187 dollars and
-  42 cents, due October first. (Keyterms on for the warm-up, so this just works.)
-- "What was it two months ago?" July: 209 dollars and 74 cents.
-- "How does this month compare to the same month last year?" September 2025 was 160 dollars and
-  5 cents, so about 27 dollars more, roughly 17 percent, with the rate increase in January and
-  more kilowatt hours both contributing.
+- The call is already up and has been for at least ten minutes. Uptime counter running.
+- Dashboard full screen in Chrome, at least 1080p, no other windows. Refresh once. Event log
+  disclosure closed.
+- Switches: **naive OFF, keyterms ON, eager OFF, multilingual OFF.** Eager 0.50, eot 0.70, timeout 5000.
+- Headset on, wired. Agent audio teed to the PA. Say one word and confirm the state pill goes
+  green, then let it settle to listening.
+- Phone within reach for the video cut. On stage the "phone" is the headset; do not wave a handset
+  around, it reads as a prop.
+- Slides: one opener, one checklist, one handoff. Nothing else. Slides close after the opener.
+- Fallback MP4s open in a second window, one per beat, each cued to its first frame.
 
-Other questions the agent can answer from the account:
+## 0:00 to 1:30, the opener *(video: 0:00 to 0:30)*
 
+**Slide 1 up.** Title. Face the room, not the screen.
+
+> Every voice agent demo works. You have seen a hundred of them and they all work. Then a real
+> person calls, and they do four things the demo never did. They talk over it. They say a word
+> it has never heard. They pause in the middle of a sentence. And they do not stop talking.
+>
+> I am going to do all four to this one, live, on an open call. Then I am going to fix three of
+> them without hanging up.
+
+**Close the slides. Dashboard fills the screen.** Point at the four zones, ten seconds total.
+
+> This is the inside of the agent. What I say, in white. What it says, in blue. The pill is what
+> it thinks it is doing. The bar is how sure it is that I have finished talking. The numbers at
+> the bottom are real and they are not going to be flattering.
+
+*Stage direction:* do not explain the switches. The room will learn them by watching.
+
+## 1:30 to 5:00, beat 1, barge-in *(video: 0:30 to 2:30)*
+
+**Press 1. Naive mode ON.** The red switch reads ON. Say nothing about it yet.
+
+**You, into the headset:** "Can you explain how time-of-use pricing works?"
+
+*Wait for the agent to get two sentences in.* Blue text is filling. State pill says speaking.
+
+**You, over the top of it:** "Sorry, actually, what's my balance?"
+
+*What happens:* the agent keeps talking. It finishes the paragraph over you. Then, if it heard
+your question at all, it answers it as if you had waited politely. The room has done this on a
+real call. Let them sit in it for two seconds.
+
+> That is a voice agent that was built the way most of them get built. Silence timer, no
+> interrupt. It is not broken. It is exactly what it was told to do.
+
+**Press 1. Naive mode OFF.** Point at the switch as you do it.
+
+> Same agent. Same call. One switch.
+
+**You:** "Can you explain how time-of-use pricing works?" *Two sentences in:* "Sorry, actually,
+what's my balance?"
+
+*What happens:* audio cuts on your first syllable. The blue text truncates and a red marker says
+"heard up to here." The agent asks for your last name, because that is an account question.
+Do not answer yet. Point at the red marker.
+
+> That marker is the whole beat. The agent knows exactly which words I heard before I cut it off,
+> not which words it generated. So it does not repeat itself, and it does not answer a question I
+> already withdrew. That comes from the speech side, not the language model.
+
+*Fallback cue:* if the audio does not cut, say "that one is on video" and play beat 1 fixed.
+
+## 5:00 to 8:30, beat 2, the name *(video: 2:30 to 5:00)*
+
+You are mid-conversation. The agent is waiting for a last name.
+
+**Press 2. Keyterms OFF.** Do it visibly; you are about to make things worse on purpose.
+
+**You:** "Gutentag."
+
+*What happens:* white line reads **Guten Tag**. The agent: "I heard Guten Tag. Is that right?"
+
+**You:** "Yes."
+
+*What happens:* "I don't have an account under that name. Could you say the last name once more?"
+
+Let the laugh happen. Then, to the room:
+
+> That is my actual name. Every speech model on earth has heard the German greeting ten thousand
+> times and my surname never. Yours has a word like this. A product name. A street. A drug. The
+> caller says it correctly and gets locked out of their own account.
+
+**Press 2. Keyterms ON.** Now point at two things, in this order: the green line that says
+"applied live, no reconnect: keyterms", and the uptime counter, still counting.
+
+> Watch that counter. I did not reconnect. I did not restart anything. I sent one message down the
+> socket that is already open and said: this word exists.
+
+**You:** "Gutentag."
+
+*What happens:* white line reads **Gutentag**, one word. "I heard Gutentag. Is that right?"
+
+**You:** "Yes."
+
+*What happens:* "Got it, I have your account. Your balance is 187 dollars and 42 cents, due
+October first."
+
+> Keyterm prompting is for vocabulary, not spelling. The model did not learn to spell. It learned
+> that a word exists, on a call that was already in progress.
+
+*Fallback cue:* if Flux hears the name correctly with keyterms off, do not fight it. Say "it got me
+this time, it does not always" and play beat 2 broken, then continue live from the fix.
+
+## 8:30 to 12:00, beat 3, the false start *(video: 5:00 to 6:30)*
+
+Account is open. **Press 3. Eager ON.** Eager slider at 0.50.
+
+> Now the trade-off nobody talks about. The agent can start thinking before I have finished my
+> sentence. That is faster. It is also a bet.
+
+**You, with a full one-second pause at the ellipsis:** "So I was looking at my bill and I noticed
+that… the August one was higher than July, is that right?"
+
+*What happens:* on the pause, "speculative issued" ticks to 1 in the stats strip. When you keep
+talking it is cancelled. When you actually stop, a second one is issued and this one is used.
+The counter reads 2 issued, 1 used. The agent answers: August was 203 dollars and 18 cents,
+July 209 dollars and 74 cents, so August was lower, not higher.
+
+Point at the counter.
+
+> Two calls to the language model, one answer. The first one was wasted because I paused. At
+> scale that is your LLM bill going up by half to buy about two hundred milliseconds. That is not
+> a bug. That is a product decision, and this is the dial for it.
+
+**Drag eager to 0.80.** Repeat the sentence with the same pause.
+
+*What happens:* no speculation on the pause. The agent waits. Reply is a beat slower.
+
+> Same question. Zero wasted calls. Slower. Pick one.
+
+*Talk only:* drag eager back to 0.50 and leave it. *Video:* cut here.
+
+*Fallback cue:* if the pause does not trigger speculation, lengthen it to two seconds. If it still
+does not, play beat 3 and move on; this beat is the one the room will forgive.
+
+## 12:00 to 15:00, beat 4, the rambler *(video: 6:30 to 8:30)*
+
+**Press 1. Naive ON.** Red switch.
+
+> Last one. The caller who does not stop talking.
+
+**You, without a clean stop, about 45 seconds:** "So my bill has been kind of all over the place
+this year, like July was really high, and I think that was the air conditioning, but then
+September came down a bit, and I'm trying to figure out whether I should switch plans, because
+someone told me about the time-of-use thing, but I work from home so I'm not sure that…"
+
+*What happens:* the naive agent jumps in at your first breath with an answer to half a question.
+Let it. Talk over it if you want; naive mode will not stop.
+
+**Press 1. Naive OFF.** Point at the confidence bar before you start.
+
+> Watch the bar this time.
+
+*Same ramble, same pauses.* The bar sits low through every pause and only climbs when you actually
+trail off. The agent waits. When you stop, it answers the whole thing: time-of-use would have
+saved about 11 dollars a month on this usage, and working from home cuts into that.
+
+> It is not guessing from silence. It is reading the sentence. That bar is the model's confidence
+> that I am done, four times a second, and the threshold it fires at is a product decision too.
+> Patient agent, slower. Eager agent, interrupts. This dial.
+
+**Nudge the eot slider to 0.60, then back to 0.70.** Do not re-run; the point is that it is a dial.
+
+*Fallback cue:* if the naive agent does not interrupt you, you paused too cleanly. Ramble worse.
+
+## 15:00 to 17:30, the checklist *(talk only)*
+
+**Slide 2 up.** Four lines, no logos.
+
+> Before your voice agent meets a real caller: Does it stop when they talk? Does it know what
+> they heard before it stopped? Does it know the words your callers use that the model does not?
+> Does it decide a turn is over by listening, or by a timer? Every one of those failed here in the
+> last fifteen minutes, and every fix was one message on an open socket.
+
+## 17:30 to 20:00, the handoff *(talk only)*
+
+**Slide 3 up.** QR to the repo, both startup programs.
+
+> Everything you saw is in this repo, including the switches. Liz is up next and she is going to
+> show you the fast way to build one of these. Take the fast way. Then come back to this list.
+
+Hand over. Do not take questions on stage; the slot is twenty minutes and Vonage is behind you.
+
+## Video cut
+
+Nine minutes, no slides, no room. Shoot the dashboard as the only picture, your voice as the only
+sound, agent audio from the server tee not the PA. Open with the four-zone walkthrough over the
+dashboard at rest, run beats 1 to 4 as above without the talk-only sections, and end on the
+checklist read as voice-over on the dashboard, not a slide. One take per beat, cut between beats
+on the state pill returning to listening. If a beat does not fail on take three, keep the take
+where the fix worked and narrate the failure over the broken half from an earlier recording.
+
+Record every take with the app's recorder on (it is on by default), so the caller audio and the
+event log of the good take can be replayed and checked.
+
+## Warm-up questions the account can answer
+
+For soundcheck, or for the room to shout out afterwards. Verified name first.
+
+- "What's my balance?" 187 dollars and 42 cents, due October first.
+- "What was it two months ago?" July, 209 dollars and 74 cents.
+- "How does this month compare to last September?" 160 dollars and 5 cents then, about 27 dollars
+  and 17 percent more now.
 - "When is my next meter read?" October 4.
 - "Did my last payment go through?" 203 dollars and 18 cents on September 2.
-- "Would time-of-use save me money?" About 11 dollars a month on this usage.
-- "Why was my July bill so high?" Highest usage of the year, 1310 kilowatt hours.
+- "Would time-of-use save me money?" About 11 dollars a month.
 
-## Beat 1, barge-in
-
-Naive mode **on**.
-
-- "Can you explain how time-of-use pricing works?" The agent starts a five-sentence answer.
-- Two sentences in, talk over it: "Sorry, actually, what's my balance?"
-
-Broken: the agent finishes its paragraph over you, then answers the balance question as if you had
-waited politely. Or it stops and starts the explanation again from the top.
-
-Naive mode **off**. Same two lines. The audio cuts on your first word, the screen shows the exact
-words you heard, and the answer is the balance.
-
-## Beat 2, the name on the account
-
-Naive mode off. Keyterms **off**. Ask something that needs the account.
-
-- "What's the balance on my account?" The agent asks for the last name on the account.
-- "Gutentag." Say it the way you always say it.
-
-Broken: the transcript reads "Guten Tag." The agent reads that back to you. Say "yes." It tells
-you there is no account under that name and asks again. Do not correct it. Do not explain.
-
-Flip **keyterms on**. Watch the uptime counter keep ticking and the green "applied live, no
-reconnect: keyterms" line land. Say "Gutentag" the same way. The transcript is one word, the
-read-back is right, you say yes, and it gives the balance.
-
-The line to say while the room laughs: every speech model has heard "guten Tag" ten thousand
-times and your surname never. Keyterm prompting is how you tell it a word exists. It is for
-vocabulary, not spelling.
+## Rehearsal notes
 
 Why a name and not a code: on 2026-09-10, three alphanumeric codes (`A7-4K-92-Q`, `R2-B4-U8-Y`,
 `C4-U2-I8-B`) all transcribed correctly on the Elgato with keyterms off. Flux does not need help
@@ -75,6 +241,13 @@ line and its `ConfigureSuccess` before blaming the model.
 
 If the phone codec makes codes fail on the real number, the code is still in the account as a
 pocket prop. Do not build the beat on it until it has failed ten times in a row on a real call.
+
+## The pocket beat, a language switch
+
+Tested 2026-09-10 with multilingual on: saying "Sam Gutentag" did **not** flip the readout to
+German, so the surname gag is unproven at best. Speaking a Spanish sentence did flip it to ES. If
+a primary beat is cut, the pocket beat is a sentence of Spanish mid-call, and the chips beside the
+state pill are the whole visual.
 
 ## The pocket beat, a language switch
 
@@ -113,11 +286,3 @@ climb when you actually stop. Then raise `eot_timeout_ms` if it waits too long, 
 `eot_threshold` if it waits too long on a clear stop, and narrate that these are product
 decisions about how patient the agent should be.
 
-## The checklist slide
-
-Four failures, four fixes, in the order the room just watched. No app needed.
-
-## If a beat will not fail
-
-Cut to the recorded MP4 for that beat, in the same mode, without apologizing. The recordings are
-Phase 6. Until they exist, skip the beat and say what it would have shown.
