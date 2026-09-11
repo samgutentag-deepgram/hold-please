@@ -79,15 +79,15 @@ speaking, so the room can see the barge-in land.
 
 ## Beat 2 — The confirmation code
 
-**On stage:** the presenter gives the street name on the account, "Tuolumne Street". (Originally a
+**On stage:** the presenter gives the surname on the account, "Gutentag". (Originally a
 confirmation code; changed 2026-09-10 after three alphanumeric codes all transcribed correctly with
 keyterms off. Flux handles letters and digits on a good mic; it needs help with words it has not seen.)
 
-**Broken:** the street comes back as different words. "Tuolumne" becomes "to alumni", the agent reads
+**Broken:** the name comes back as a German greeting. "Gutentag" becomes "Guten Tag", the agent reads
 that back, and cannot find the account.
 
 **Fixed:** the presenter clicks one toggle that sends a `Configure` control message on the **already
-open** Flux socket, adding keyterms. Says the same street again. It comes back correct, and the account opens.
+open** Flux socket, adding keyterms. Says the name again. It comes back as one word, and the account opens.
 
 **What the app must show:** the transcript before and after, side by side or stacked, so the room
 sees the same input produce two different outputs. Also a small visible confirmation that the

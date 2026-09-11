@@ -16,7 +16,7 @@ presented twice: San Francisco on Tuesday October 6 and Los Angeles on Thursday 
 | Beat | You do | What breaks | The fix, applied to the open socket |
 |---|---|---|---|
 | Barge-in | Talk over the agent | It keeps talking, or restarts from the top | Flux TTS `Interrupt` reports `text_spoken`, and the agent resumes from there |
-| The street name | Say "Tuolumne Street" | It comes back as "To Alumni Street" and the account will not open | A `Configure` message adds keyterms mid-stream |
+| The name on the account | Say "Gutentag" | It comes back as "Guten Tag" and the account will not open | A `Configure` message adds keyterms mid-stream |
 | The false start | Pause mid-sentence, then continue | A speculative LLM call is issued and thrown away | Tune `eager_eot_threshold` and watch the issued-versus-used count |
 | The rambler | Talk for 45 seconds | The agent cuts you off, or waits forever | Tune `eot_threshold` and `eot_timeout_ms` while the confidence bar climbs |
 

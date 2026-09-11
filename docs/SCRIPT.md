@@ -1,8 +1,7 @@
 # Presenter script
 
 What to say into the phone, beat by beat, and what should happen. The account the agent knows is
-in `src/agent/account.ts`; the caller is verified by the street on the service address, Tuolumne
-Street, said "too-AH-luh-mee". Say it the same way every time. Nothing here is fixed until it
+in `src/agent/account.ts`; the caller is verified by the surname on the account, Gutentag. Nothing here is fixed until it
 has failed on cue ten times in rehearsal (Phase 7). Treat this as the first draft to rehearse
 against, and update it with what actually works.
 
@@ -10,9 +9,9 @@ against, and update it with what actually works.
 
 The call is already up. Ask two ordinary questions so the room hears a working agent first.
 
-- "Hi, what's the balance on my account?" The agent asks for the street on your service address.
-  "Tuolumne Street." It reads back what it heard, you confirm, and it gives the balance: 187
-  dollars and 42 cents, due October first. (Keyterms on for the warm-up, so this just works.)
+- "Hi, what's the balance on my account?" The agent asks for the last name on the account.
+  "Gutentag." It reads back what it heard, you confirm, and it gives the balance: 187 dollars and
+  42 cents, due October first. (Keyterms on for the warm-up, so this just works.)
 - "What was it two months ago?" July: 209 dollars and 74 cents.
 - "How does this month compare to the same month last year?" September 2025 was 160 dollars and
   5 cents, so about 27 dollars more, roughly 17 percent, with the rate increase in January and
@@ -38,34 +37,41 @@ waited politely. Or it stops and starts the explanation again from the top.
 Naive mode **off**. Same two lines. The audio cuts on your first word, the screen shows the exact
 words you heard, and the answer is the balance.
 
-## Beat 2, the street name
+## Beat 2, the name on the account
 
 Naive mode off. Keyterms **off**. Ask something that needs the account.
 
-- "What's the balance on my account?" The agent asks for the street on your service address.
-- "Tuolumne Street." Normal speed, "too-AH-luh-mee".
+- "What's the balance on my account?" The agent asks for the last name on the account.
+- "Gutentag." Say it the way you always say it.
 
-Broken: the transcript reads "To Alumni Street" or "Two Illuminae Street." The agent reads that
-back to you. Say "yes." It tells you there is no account on a street by that name and asks again.
-Do not correct it.
+Broken: the transcript reads "Guten Tag." The agent reads that back to you. Say "yes." It tells
+you there is no account under that name and asks again. Do not correct it. Do not explain.
 
 Flip **keyterms on**. Watch the uptime counter keep ticking and the green "applied live, no
-reconnect: keyterms" line land. Say "Tuolumne Street" the same way. The transcript is right, the
+reconnect: keyterms" line land. Say "Gutentag" the same way. The transcript is one word, the
 read-back is right, you say yes, and it gives the balance.
 
-Why a street and not a code: on 2026-09-10, three alphanumeric codes (`A7-4K-92-Q`, `R2-B4-U8-Y`,
+The line to say while the room laughs: every speech model has heard "guten Tag" ten thousand
+times and your surname never. Keyterm prompting is how you tell it a word exists. It is for
+vocabulary, not spelling.
+
+Why a name and not a code: on 2026-09-10, three alphanumeric codes (`A7-4K-92-Q`, `R2-B4-U8-Y`,
 `C4-U2-I8-B`) all transcribed correctly on the Elgato with keyterms off. Flux does not need help
-with letters and digits on a good mic. It does need help with words it has never seen.
+with letters and digits on a good mic.
 
-Why Tuolumne and not Ygnacio: Ygnacio was the first pick, and the probe flipped it with a TTS
-voice, but on Sam's voice the keyterm did not take and Flux kept writing "Ignacio". Tuolumne went
-three voices for three in the probe: "two Illuminae", "to alumni", "to Alumna" without the
-keyterm, "Tuolumne" with it. Yachats did the same but nobody outside Oregon can say it.
+Why a name and not a street: two streets were tried first and both lost on Sam's voice, which is
+the only voice that matters. Ygnacio Valley Road: the keyterm flipped a synthetic voice from
+"Ignacio" to "Ygnacio" but never Sam's. Tuolumne Street: three synthetic voices went "to alumni"
+off and "Tuolumne" on, but Sam says it "tuh-LOO-mee" and Flux heard "Talumi" with keyterms off
+*and* on, because the keyterm biases toward the place's pronunciation and that is not what was
+said. The surname is the one word the presenter says the same way every time, and it was the only
+candidate proven both ways on his own voice: "Guten Tag" off, "Gutentag" on.
 
-Proof without a microphone: `node --env-file=.env scripts/keyterm-probe.mjs "I live on Tuolumne Street."`
-synthesizes the phrase with Flux TTS and transcribes it with Flux STT, keyterms off and on. If a
-live run disagrees, check the green "applied live" line and the keyterm switch before blaming the
-model, then try `KEYTERMS=... node scripts/keyterm-probe.mjs` with other candidates.
+Proof on a recording: every call writes `recordings/<stamp>-<call>-caller.wav` and an events log.
+`AUDIO=recordings/...-caller.wav node --env-file=.env scripts/keyterm-probe.mjs` transcribes the
+real audio with keyterms off and on. If the two outputs match, the word is wrong for the voice, not
+the toggle. If a live run refuses a correct transcript, check the events log for the `Configure`
+line and its `ConfigureSuccess` before blaming the model.
 
 If the phone codec makes codes fail on the real number, the code is still in the account as a
 pocket prop. Do not build the beat on it until it has failed ten times in a row on a real call.
