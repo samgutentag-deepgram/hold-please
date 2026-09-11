@@ -1,10 +1,11 @@
 // The one customer the agent knows. Fictional, and shaped so the presenter has real questions
 // to ask: this month's balance, two months ago, the same month last year, why it changed.
-// The street on the service address is the beat 2 prop: the agent needs it before it will read the
-// account, and Flux hears "Tuolumne" (too-AH-luh-mee) as "to alumni" until keyterms tell it
-// otherwise. Picked 2026-09-10 with scripts/keyterm-probe.mjs: three voices, three misses without
-// the keyterm, three hits with it. Ygnacio was the first choice and the keyterm did not take on a
-// human voice. Three alphanumeric codes all transcribed correctly without help, so no code gates.
+// The surname on the account is the beat 2 prop: the agent needs it before it will read the
+// account, and Flux hears "Gutentag" as "Guten Tag" until keyterms tell it the name exists.
+// Settled 2026-09-10 after two streets lost on the presenter's own voice: Ygnacio (keyterm did not
+// take) and Tuolumne (pronounced differently from the place, so the keyterm had nothing to grab).
+// The surname is the one word the presenter says the same way every time. Three alphanumeric codes
+// all transcribed correctly without help, so no code gates anything.
 
 export interface BillingMonth {
   month: string
@@ -14,6 +15,7 @@ export interface BillingMonth {
 
 export const ACCOUNT = {
   holder: 'Sam Gutentag',
+  surname: 'Gutentag',
   accountNumber: '4471-9920-33',
   serviceStreet: 'Tuolumne Street',
   serviceAddress: '1440 Tuolumne Street, Modesto',
@@ -52,8 +54,9 @@ export function renderAccount(): string {
   const rows = a.history.map((h) => `  ${h.month}: ${h.kwh} kilowatt hours, ${h.amount.toFixed(2)} dollars`).join('\n')
   return `Account holder: ${a.holder}
 Account number: ${a.accountNumber}
+Surname used to verify the caller (they must say this name before you discuss the account): ${a.surname}
 Service address: ${a.serviceAddress}
-Street name used to verify the caller (they must say this street before you discuss the account): ${a.serviceStreet}
+Street on the service address: ${a.serviceStreet}
 Confirmation code, only if the caller volunteers one: ${a.confirmationCode}
 Plan: ${a.plan}
 Current balance: ${a.currentBalance.toFixed(2)} dollars, due ${a.dueDate}
