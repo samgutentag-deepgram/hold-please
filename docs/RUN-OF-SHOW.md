@@ -8,12 +8,14 @@ a beat below. If a proposed feature does not map to a beat, it does not get buil
 | 0:00 to 1:30 | **"Every demo works."** One slide, then slides close for good | Warm, with a call already up. Optional: the Gutentag gag, see below |
 | 1:30 to 5:00 | **Beat 1, barge-in** | Naive mode on, then off |
 | 5:00 to 8:30 | **Beat 2, the confirmation code** | Keyterms pushed mid-call |
-| 8:30 to 12:00 | **Beat 3, the false start** | Eager EOT visible, then tuned |
+| 8:30 to 12:00 | **Beat 3, the false start** (the tradeoff, not a fix) | Eager EOT visible, then tuned |
 | 12:00 to 15:00 | **Beat 4, the rambler** | EOT params tuned mid-call |
 | 15:00 to 17:30 | **The checklist.** One slide, all four failures as a pre-launch checklist | Nothing |
 | 17:30 to 20:00 | **Handoff.** QR to the repo, both startup programs | Nothing |
 
-Each beat runs the same four-step shape: **break it, name why, fix it, run it again.** Roughly
+Beats 1, 2 and 4 run the same four-step shape: **break it, name why, fix it, run it again.**
+Beat 3 is deliberately the odd one out: **nothing breaks, and you tune rather than fix.** Three
+fixes and one tradeoff, and say which is which on stage. Roughly
 3:20 per beat. The app has to make each of those four steps visible without narration carrying
 the whole load, because half the room is reading rather than listening.
 
@@ -103,15 +105,30 @@ the most demo-valuable capability in the stack. Build this beat first after the 
 
 **On stage:** the presenter pauses mid-sentence as if finished, then continues.
 
-**Broken:** nothing is technically broken. `EagerEndOfTurn` fires, a speculative LLM call starts,
-and `TurnResumed` cancels it. The point of the beat is that this is a tradeoff with a bill
-attached, not a bug.
+**Not broken, and say so out loud.** `EagerEndOfTurn` fires, a speculative LLM call starts, and
+`TurnResumed` cancels it. Beat 3 is **the tradeoff, not a fix**. This is the one beat of the four
+where nothing is wrong and nothing gets repaired. Frame it that way from the first sentence, or the
+room spends the whole beat waiting for a fix that never comes.
 
-**What the app must show:** the speculative call starting and being cancelled, as discrete visible
-events. Also a running count of speculative calls issued versus used, because the honest number
-is the beat. Eager at 0.3 to 0.5 buys 150 to 250ms and costs 50 to 70% more LLM calls.
+**Say what the bill actually is.** "It costs money" is hand-waving. There are three costs and they
+get progressively more interesting:
 
-**Fix mechanism:** adjust `eager_eot_threshold` live and re-run. Note the hard constraint:
+1. **Tokens you throw away.** Eager at 0.3 to 0.5 buys 150 to 250ms of perceived latency and costs
+   **50 to 70% more LLM calls**. You pay for inference on turns nobody ever heard.
+2. **The unit on screen, not the dollar amount.** Show **issued versus used**. Issue 10, use 6, and
+   you paid for four replies that were thrown away. Never put a price on the slide: Voice Agent and
+   Flux TTS pricing both moved on Sept 13 and anything in dollars will be stale on stage.
+3. **Side effects you cannot take back. This is the real bill.** If a speculative turn produces a
+   tool call, it dispatches immediately. A caller who false-starts mid-sentence can make your agent
+   charge a card, book a slot or send an email, and *then* the turn resumes and the reply is
+   discarded. The side effect is not. Deepgram's own guidance is to set `defer_until_eot: true` on
+   anything non-idempotent, and the managed API emits `FunctionCallCancelled` so you can roll back.
+   On raw sockets it is entirely your problem.
+
+Point 3 is the 30 seconds worth keeping. It turns beat 3 from a config dial into the production
+hazard the talk is named after.
+
+**Mechanism:** adjust `eager_eot_threshold` live and re-run. It is a dial, not a repair. Note the hard constraint:
 `eager_eot_threshold` must be less than or equal to `eot_threshold` or the connection errors out.
 **The UI must prevent that combination rather than let the presenter break the demo on stage.**
 
@@ -130,6 +147,32 @@ config values.
 event carries `end_of_turn_confidence` roughly four times a second. Render it as a live bar. This
 is the best-looking element in the whole demo and it makes "why did it fire there" visible instead
 of theoretical.
+
+**Know what you are actually rendering.** `Update` arrives about 4 times a second and end of turn
+is 260ms at P50, so **a typical turn produces one or two samples**. There is no smooth ramp in the
+data. The bar is already interpolating (`#bar i` has a 120ms CSS transition), so the question is
+not whether to animate but how much.
+
+**Freeze it, then replay it. Decided 2026-09-21.** Agents are too fast for a room to read at
+real time, so:
+
+- The bar runs at **real time** during the turn. Never slow the render while audio is live: if the
+  bar lags the phone, the room watches the agent answer before the bar fills and the causal story
+  dies.
+- On `stt.endOfTurn`, **hold the trace on screen** as a frozen sparkline with a marker where it
+  crossed. That is the thing to point at: "it fired there, at 0.74, 260 milliseconds after I
+  stopped." A room reads a frozen shape far better than a moving one.
+- One key **replays the held trace at quarter speed** while the call sits idle. Never during a turn.
+
+**In the pocket, if the frozen trace is not landing:** raise `eot_threshold` toward 0.9 and
+`eot_timeout_ms`. This genuinely slows the agent, so a 3 second turn yields roughly 12 samples
+instead of 1, and it is free because those are already toggles. The catch is that they are this
+beat's own dials, so you are spending the beat's mechanism on stagecraft. Use it live, not as the
+default.
+
+**Also fix:** the threshold marker on the bar is hardcoded at `left: 70%`
+(`src/web/public/index.html:78`). It must track the live `eotThreshold` toggle, or the line stands
+still while the dial moves.
 
 **Also show the tail.** Published end-of-turn latency is 260ms at P50 but p90 is around 1s and p95
 around 1.5s. Put p50, p90 and p95 on screen from the start. On a conference network the tail will

@@ -16,8 +16,9 @@ help that sentence land, it does not get built. Settled with Sam on 2026-09-10.
 A live stage demo for a 20 minute talk called **"Your Demo Works. Your Callers Don't."** A real
 phone call comes in to a Vonage number. A voice agent answers it, using Deepgram Flux to listen
 and Flux TTS to speak. On stage the presenter deliberately breaks the agent four times in ways
-the audience recognizes, then fixes three of those four **live, on the open socket, without
-dropping the call**. A browser window shows what is happening in type large enough to read from
+the audience recognizes, then **fixes three of them live, on the open socket, without dropping the
+call, and tunes the fourth**. Beat 3 is the tradeoff, not a fix: nothing is broken there, it just
+has a bill. A browser window shows what is happening in type large enough to read from
 the back of the room.
 
 This is a stage prop, not a product. Optimise for a presenter under pressure in a room with bad
@@ -61,8 +62,11 @@ wifi, not for architecture.
 1. **20 minutes total.** Every feature competes for seconds.
 2. **No live coding on stage.** Every on-stage change is a pre-wired toggle in the browser. If a
    beat needs a file edit or a restart, the beat is wrong.
-3. **No reconnects mid-beat.** Three of the four fixes must apply to a socket that stays open.
-   This is the single most important technical requirement in the whole build.
+3. **No reconnects mid-beat.** All four on-stage changes apply to a socket that stays open. This
+   is the single most important technical requirement in the whole build. (An earlier version of
+   this line said "three of the four", inherited from a comparison table in the planning repo. It
+   was wrong: `SPEC.md` is correct that every toggle applies without a reconnect. The three-versus-
+   four distinction is about fixes versus the beat 3 tradeoff, not about reconnects.)
 4. **Readable from 15 feet on a bad projector.** Test by screenshotting the dashboard at 25% and
    checking you can still read it.
 5. **Degrade, never crash.** A dropped Deepgram socket should show as a visible degraded state,
