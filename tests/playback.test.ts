@@ -1,10 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PlaybackClock } from '../src/audio/playback.ts'
-import { Framer } from '../src/audio/leg.ts'
+import { BYTES_PER_SAMPLE, FRAME_BYTES, FRAME_MS, Framer, SAMPLE_RATE } from '../src/audio/leg.ts'
 import { fakeClock } from './fakeSocket.ts'
 
-const MS_100 = 3200 // bytes of 16 kHz 16-bit mono in 100 ms
+// Bytes of 100 ms of mono 16-bit PCM at whatever rate the build is on: 1600 at 8 kHz,
+// 3200 at 16 kHz. Derived, because hardcoding it is what broke when the default moved to 8 kHz.
+const MS_100 = (SAMPLE_RATE * BYTES_PER_SAMPLE) / 10
 
 test('played time follows the wall clock, capped at what was sent', () => {
   const c = fakeClock()
@@ -50,4 +52,12 @@ test('framer re-cuts arbitrary chunks into 640 byte frames and carries the remai
   assert.equal(frames.length, 2)
   assert.ok(frames.every((b) => b.length === 640))
   assert.equal(f.push(Buffer.alloc(520)).length, 1, '120 carried + 520 = one frame')
+})
+
+test('the default sample rate is 8 kHz, because the stage is a phone line', () => {
+  // PSTN is natively 8 kHz. Every beat-2 keyterm result measured at 16 kHz on a studio mic is a
+  // finding about a studio mic. Overriding to 16000 is allowed; anything else is a typo.
+  assert.equal(SAMPLE_RATE, 8_000)
+  assert.equal(FRAME_BYTES, 320)
+  assert.equal((SAMPLE_RATE * BYTES_PER_SAMPLE * FRAME_MS) / 1000, FRAME_BYTES)
 })

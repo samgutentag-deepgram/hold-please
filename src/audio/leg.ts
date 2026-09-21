@@ -2,10 +2,25 @@
 // On stage it is the Vonage websocket. In development it is the microphone and speakers.
 // Everything downstream of the leg is identical, which is the whole point of the abstraction.
 
-export const SAMPLE_RATE = 16_000
+// PSTN is natively 8 kHz, so that is the default: it is the medium the talk actually runs on, and
+// running the local harness at the same rate means beat 2's keyterm results are measured against
+// the signal a phone will really deliver. 16 kHz stays available for studio-mic work, but a result
+// measured there does not transfer. Both rates are legal on a Vonage websocket and on Flux.
+function resolveSampleRate(): 8_000 | 16_000 {
+  const raw = process.env.AUDIO_SAMPLE_RATE?.trim()
+  if (!raw) return 8_000
+  const parsed = Number.parseInt(raw, 10)
+  if (parsed !== 8_000 && parsed !== 16_000) {
+    throw new Error(`AUDIO_SAMPLE_RATE must be 8000 or 16000, got "${raw}"`)
+  }
+  return parsed
+}
+
+export const SAMPLE_RATE = resolveSampleRate()
 export const BYTES_PER_SAMPLE = 2
 export const FRAME_MS = 20
-export const FRAME_BYTES = (SAMPLE_RATE * BYTES_PER_SAMPLE * FRAME_MS) / 1000 // 640
+/** 320 bytes at 8 kHz, 640 at 16 kHz. Everything that frames audio derives from this. */
+export const FRAME_BYTES = (SAMPLE_RATE * BYTES_PER_SAMPLE * FRAME_MS) / 1000
 
 export interface AudioLeg {
   readonly name: 'vonage' | 'local'
