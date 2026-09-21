@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createBus } from '../src/bus/events.ts'
 import { FluxTts, buildTtsUrl } from '../src/tts/fluxTts.ts'
+import { SAMPLE_RATE } from '../src/audio/leg.ts'
 import { fakeClock, fakeFactory } from './fakeSocket.ts'
 
 test('the URL names the voice and asks for raw 16 kHz linear16', () => {
@@ -9,7 +10,7 @@ test('the URL names the voice and asks for raw 16 kHz linear16', () => {
   assert.equal(url.pathname, '/v2/speak')
   assert.equal(url.searchParams.get('model'), 'flux-haley-en')
   assert.equal(url.searchParams.get('encoding'), 'linear16')
-  assert.equal(url.searchParams.get('sample_rate'), '16000')
+  assert.equal(url.searchParams.get('sample_rate'), String(SAMPLE_RATE))
 })
 
 async function connected() {

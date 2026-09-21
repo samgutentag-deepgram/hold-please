@@ -71,7 +71,21 @@
   #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
   .empty { color: var(--dim); font-weight: 500; }
 
-  .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; }
+  .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 12px 16px; }
+  /* Row 2 is the frozen trace of the turn that just ended. Hidden until there is one to show.
+     Flux reports about 4 times a second against a 260 ms median turn, so a live bar is over
+     before a room can read it. The still picture is the thing to point at. */
+  .trace-label { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  #trace-wrap { grid-column: 2; height: 72px; visibility: hidden; }
+  #trace-wrap.on { visibility: visible; }
+  #trace { width: 100%; height: 72px; display: block; background: var(--line); border-radius: 8px; }
+  #trace .thr  { stroke: var(--thinking); stroke-width: 2; stroke-dasharray: 7 6; }
+  #trace .line { fill: none; stroke: var(--listening); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+  #trace .tick { stroke: var(--listening); stroke-width: 4; stroke-linecap: round; }
+  #trace .fire { stroke: var(--interrupted); stroke-width: 4; }
+  #trace-meta { font: 700 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg); white-space: nowrap; text-align: right; }
+  #trace-meta small { display: block; font: 500 13px/1.4 system-ui, sans-serif; color: var(--dim); }
+  kbd { font: 700 12px/1 ui-monospace, Menlo, monospace; border: 1px solid var(--dim); border-radius: 4px; padding: 2px 5px; color: var(--dim); }
   .bar-label { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
   #bar { height: 28px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
   #bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #1b998b, #3fb950); transition: width 120ms linear; }
@@ -126,6 +140,17 @@
     <span class="bar-label">End of turn confidence</span>
     <div id="bar"><i></i><b title="eot_threshold"></b></div>
     <span id="conf">0.00</span>
+
+    <span class="trace-label">Last turn <kbd>R</kbd></span>
+    <div id="trace-wrap">
+      <svg id="trace" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-label="Confidence over the turn that just ended">
+        <line class="thr"  id="tr-thr" x1="0" y1="30" x2="1000" y2="30" vector-effect="non-scaling-stroke"/>
+        <polyline class="line" id="tr-line" points="" vector-effect="non-scaling-stroke"/>
+        <g id="tr-ticks"></g>
+        <line class="fire" id="tr-fire" x1="0" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke" style="display:none"/>
+      </svg>
+    </div>
+    <span id="trace-meta">–<small>no turn yet</small></span>
   </div>
 
   <footer>
@@ -145,7 +170,9 @@
   const el = { conn: $('conn'), lang: $('lang'), state: $('state'), caller: $('caller'), agent: $('agent'),
     bar: $('bar').querySelector('i'), conf: $('conf'), eot: $('eot'), eotp: $('eotp'), ttft: $('ttft'), ttfb: $('ttfb'),
     uptime: $('uptime'), reconnects: $('reconnects'), degraded: $('degraded'), events: $('events'),
-    applied: $('applied'), rejected: $('rejected'), spec: $('spec') }
+    applied: $('applied'), rejected: $('rejected'), spec: $('spec'),
+    barThr: $('bar').querySelector('b'), traceWrap: $('trace-wrap'), trLine: $('tr-line'),
+    trThr: $('tr-thr'), trTicks: $('tr-ticks'), trFire: $('tr-fire'), trMeta: $('trace-meta') }
 
   let ws = null
   let toggles = null
@@ -158,6 +185,9 @@
 
   function renderToggles() {
     if (!toggles) return
+    // The marker on the live bar is where the turn will fire. It has to move with the dial,
+    // or beat 4 shows a line standing still while the presenter drags the slider.
+    el.barThr.style.left = (toggles.eotThreshold * 100) + '%'
     for (const sw of tgSwitches) sw.checked = !!toggles[sw.dataset.toggle]
     for (const sl of tgSliders) {
       const name = sl.dataset.toggle
@@ -183,9 +213,70 @@
   }
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.target.type === 'range' || e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.key === 'r' || e.key === 'R') { replayTrace(); return }
     const i = ['1', '2', '3', '4'].indexOf(e.key)
     if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
+
+  // The turn currently being spoken, and the last one frozen on screen.
+  let turnStartT = null
+  let trace = []
+  let frozen = null
+
+  function freezeTrace(endEvent) {
+    const thr = toggles ? Number(toggles.eotThreshold) : 0.7
+    el.trThr.setAttribute('y1', String(100 - thr * 100))
+    el.trThr.setAttribute('y2', String(100 - thr * 100))
+
+    if (trace.length === 0) {
+      el.trLine.setAttribute('points', '')
+      el.trTicks.replaceChildren()
+      el.trFire.style.display = 'none'
+      el.traceWrap.classList.add('on')
+      el.trMeta.innerHTML = '0<small>samples. the turn was shorter than one report.</small>'
+      frozen = null
+      return
+    }
+
+    // Start the line at zero confidence so the shape reads as a climb rather than a floating dot.
+    const pts = [{ dt: 0, c: 0 }, ...trace]
+    const spanMs = Math.max(1, pts[pts.length - 1].dt)
+    const x = (dt) => (dt / spanMs) * 1000
+    const y = (c) => 100 - Math.max(0, Math.min(1, c)) * 100
+
+    el.trLine.setAttribute('points', pts.map((p) => `${x(p.dt).toFixed(1)},${y(p.c).toFixed(1)}`).join(' '))
+    el.trTicks.replaceChildren(...trace.map((p) => {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      l.setAttribute('class', 'tick'); l.setAttribute('vector-effect', 'non-scaling-stroke')
+      l.setAttribute('x1', x(p.dt).toFixed(1)); l.setAttribute('x2', x(p.dt).toFixed(1))
+      l.setAttribute('y1', (y(p.c) - 5).toFixed(1)); l.setAttribute('y2', (y(p.c) + 5).toFixed(1))
+      return l
+    }))
+    el.trFire.setAttribute('x1', '1000'); el.trFire.setAttribute('x2', '1000')
+    el.trFire.style.display = ''
+    el.traceWrap.classList.add('on')
+
+    const last = trace[trace.length - 1]
+    const n = trace.length
+    el.trMeta.innerHTML = `${last.c.toFixed(2)}<small>fired after ${Math.round(endEvent.latencyMs)} ms, on ${n} sample${n === 1 ? '' : 's'}</small>`
+    frozen = { spanMs }
+    replayTrace()
+  }
+
+  // Reveal the frozen line left to right at quarter speed. Idle only: never while a turn is live,
+  // because a bar that lags the phone shows the agent answering before the confidence arrives.
+  function replayTrace() {
+    if (!frozen) return
+    const len = el.trLine.getTotalLength ? el.trLine.getTotalLength() : 0
+    if (!len) return
+    const ms = Math.max(800, Math.min(6000, frozen.spanMs * 4))
+    el.trLine.style.transition = 'none'
+    el.trLine.style.strokeDasharray = `${len}`
+    el.trLine.style.strokeDashoffset = `${len}`
+    void el.trLine.getBoundingClientRect()
+    el.trLine.style.transition = `stroke-dashoffset ${ms}ms linear`
+    el.trLine.style.strokeDashoffset = '0'
+  }
 
   let callStartedAt = null      // bus time of call.started, for socket uptime
   let lastEventT = 0
@@ -210,11 +301,14 @@
       case 'stt.update':
         el.bar.style.width = Math.round(e.eotConfidence * 100) + '%'
         el.conf.textContent = e.eotConfidence.toFixed(2)
+        if (turnStartT !== null) trace.push({ dt: e.t - turnStartT, c: e.eotConfidence })
         if (e.text) setCaller(e.text, true)
         break
-      case 'stt.startOfTurn': el.caller.classList.remove('empty'); break
+      case 'stt.startOfTurn': el.caller.classList.remove('empty'); turnStartT = e.t; trace = []; break
       case 'stt.endOfTurn':
         setCaller(e.text, false)
+        freezeTrace(e)
+        turnStartT = null
         ms(el.eot, e.latencyMs)
         eotSamples.push(e.latencyMs)
         el.eotp.textContent = `${pct(eotSamples, 0.5)} / ${pct(eotSamples, 0.9)} / ${pct(eotSamples, 0.95)}`
@@ -223,7 +317,7 @@
         el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
-      case 'call.started': el.lang.replaceChildren(); callStartedAt = e.t; el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
+      case 'call.started': el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
       case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); break
       case 'tts.interrupt':
         el.agent.innerHTML = ''

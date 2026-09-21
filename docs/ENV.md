@@ -76,3 +76,13 @@ which is a confusing ten minutes if you have not seen it before.
 Before wiring anything, confirm the key reaches Flux TTS rather than only Aura. The playground and
 `talk.deepgram.com` are the fastest checks. A key that silently falls back to an older voice model
 will waste an afternoon.
+
+
+## AUDIO_SAMPLE_RATE
+
+`8000` (default) or `16000`. Set once in `src/audio/leg.ts`; `FRAME_BYTES`, the NCCO content
+type, both Deepgram socket URLs, the playback clock and the WAV recorder all derive from it.
+
+Default is 8 kHz because PSTN is natively 8 kHz, and because running the local harness at the
+same rate is the only way a beat 2 keyterm result means anything for the stage. Every keyterm
+measurement taken before 2026-09-21 was at 16 kHz on an Elgato and does not transfer.

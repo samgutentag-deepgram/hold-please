@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createBus } from '../src/bus/events.ts'
 import { FluxStt, buildFluxUrl, validateParams } from '../src/stt/flux.ts'
+import { FRAME_BYTES, SAMPLE_RATE } from '../src/audio/leg.ts'
 import { fakeClock, fakeFactory } from './fakeSocket.ts'
 
 const params = { model: 'flux-general-en', eotThreshold: 0.7, eotTimeoutMs: 5000, keyterms: [] as string[] }
@@ -11,7 +12,7 @@ test('the URL carries every parameter under its real name, keyterms repeated', (
   assert.equal(url.pathname, '/v2/listen')
   assert.equal(url.searchParams.get('model'), 'flux-general-en')
   assert.equal(url.searchParams.get('encoding'), 'linear16')
-  assert.equal(url.searchParams.get('sample_rate'), '16000')
+  assert.equal(url.searchParams.get('sample_rate'), String(SAMPLE_RATE))
   assert.equal(url.searchParams.get('eot_threshold'), '0.7')
   assert.equal(url.searchParams.get('eot_timeout_ms'), '5000')
   assert.equal(url.searchParams.get('eager_eot_threshold'), '0.5')
@@ -36,9 +37,10 @@ test('connect sends the Token header and emits turn events with the right shapes
   sock.open()
   await connecting
 
-  // 1 s of audio in 20 ms frames, 10 ms of wall clock each.
+  // 1 s of audio in 20 ms frames, 10 ms of wall clock each. FRAME_BYTES rather than a literal,
+  // so the arithmetic holds at 8 kHz and at 16 kHz.
   for (let i = 0; i < 50; i++) {
-    stt.sendAudio(Buffer.alloc(640))
+    stt.sendAudio(Buffer.alloc(FRAME_BYTES))
     c.advance(10)
   }
   sock.serverJson({ type: 'TurnInfo', event: 'StartOfTurn', turn_index: 0, transcript: 'Hi', words: [], end_of_turn_confidence: 0.1, audio_window_start: 0, audio_window_end: 0.4 })
