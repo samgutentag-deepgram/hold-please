@@ -3,6 +3,7 @@ import { bus } from './bus/events.ts'
 import { startWebServer } from './web/server.ts'
 import { Call } from './call.ts'
 import { LocalAudioLeg } from './audio/local.ts'
+import { resolveMic, resolveSpeaker } from './audio/devices.ts'
 import { createVonageWebhooks, VONAGE_WS_PATH, VonageAudioLeg } from './telephony/vonage.ts'
 import { DEFAULT_TOGGLES, TOGGLE_LIMITS, ToggleStore } from './toggles/state.ts'
 
@@ -79,19 +80,24 @@ async function main(): Promise<void> {
   }
 
   if (local) {
+    const [mic, speaker] = await Promise.all([
+      resolveMic(config.local.micDevice),
+      resolveSpeaker(config.local.speakerDevice),
+    ])
     const leg = new LocalAudioLeg({
-      micDevice: config.local.micDevice,
-      speakerDeviceIndex: config.local.speakerDeviceIndex,
+      micDevice: mic.spec,
+      speakerDeviceIndex: speaker.index,
       muteWhileSpeaking: config.local.muteWhileSpeaking,
       isPlaying: () => activeCall?.playback.isPlaying() ?? false,
       bus,
     })
+    console.log(`[local] microphone ${mic.label}, speaker ${speaker.label}.`)
     const call = new Call('local', leg, bus, config, toggles)
     activeCall = call
     leg.onClose(() => {
       activeCall = null
     })
-    console.error(`[local] microphone ${config.local.micDevice}, speaker device ${config.local.speakerDeviceIndex === -1 ? 'system default' : config.local.speakerDeviceIndex}. Wear headphones or set LOCAL_MUTE_WHILE_SPEAKING=1.`)
+    console.error('[local] wear headphones, or set LOCAL_MUTE_WHILE_SPEAKING=1, or it hears itself.')
     leg.start()
     await call.start()
   }
