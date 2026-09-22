@@ -6,5 +6,8 @@ node_modules/
 *.log
 recordings/
 
-# Separate sub-project with its own node_modules. Not part of the demo.
-video/
+# The Remotion package has its own pnpm root. Its source belongs in the repo; its dependencies
+# and its renders do not. Blanket-ignoring video/ silently blocked that session from committing.
+video/node_modules/
+video/out/
+video/.remotion/
