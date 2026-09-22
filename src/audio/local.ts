@@ -2,6 +2,7 @@ import { spawn, type ChildProcessByStdio } from 'node:child_process'
 import type { Readable, Writable } from 'node:stream'
 import { now } from '../bus/clock.ts'
 import { FRAME_BYTES, FRAME_MS, Framer, SAMPLE_RATE, type AudioLeg } from './leg.ts'
+import type { Bus } from '../bus/events.ts'
 
 // The local harness: microphone in, speakers out, via ffmpeg, so Phases 1 to 5 can be developed
 // without a phone. The one thing it cannot prove is the telephony leg itself.
@@ -21,6 +22,7 @@ export interface LocalLegOptions {
   speakerDeviceIndex: number
   muteWhileSpeaking: boolean
   isPlaying: () => boolean
+  bus: Bus
 }
 
 export class LocalAudioLeg implements AudioLeg {
@@ -28,6 +30,7 @@ export class LocalAudioLeg implements AudioLeg {
   private capture: Capture | null = null
   private player: Player | null = null
   private pacer: NodeJS.Timeout | null = null
+  private playerDead = false
   private readonly inFramer = new Framer(FRAME_BYTES)
   private readonly outFramer = new Framer(FRAME_BYTES)
   private outQueue: Buffer[] = []
@@ -106,7 +109,24 @@ export class LocalAudioLeg implements AudioLeg {
     player.stderr.on('data', (chunk: Buffer) => console.error('[local speaker]', chunk.toString().trim()))
     player.stdin.on('error', (err) => console.error('[local speaker] pipe', err.message))
     player.on('exit', (code) => {
-      if (!this.closed) this.finish(`speaker playback exited with code ${code}`)
+      if (this.closed || code === 0) return
+      // A dead speaker is deaf, not fatal. Ending the call here took the whole process down on a
+      // stale LOCAL_SPEAKER_DEVICE index, which is a crash on a projector rather than a degrade.
+      // Everything upstream still works: the caller is still heard, the transcript still fills,
+      // and the dashboard still shows the turn. You just cannot hear the agent.
+      this.playerDead = true
+      if (this.pacer) clearInterval(this.pacer)
+      this.pacer = null
+      this.player = null
+      this.opts.bus.emit({
+        kind: 'socket.degraded',
+        which: 'vonage',
+        detail: `local speaker exited (${code}). Check LOCAL_SPEAKER_DEVICE; -1 is the system default.`,
+      })
+      console.error(
+        `[local speaker] exited with code ${code}. Audio out is dead, everything else keeps running.\n` +
+        `[local speaker] List outputs: ffmpeg -f lavfi -i anullsrc -t 0.01 -f audiotoolbox -list_devices true -`,
+      )
     })
 
     // Self-correcting pacer: write however many frames are due since start, silence if the
@@ -116,6 +136,7 @@ export class LocalAudioLeg implements AudioLeg {
     this.pacer = setInterval(() => {
       const due = Math.floor((now() - startedAt) / FRAME_MS) - written
       const count = Math.min(Math.max(due, 0), 5)
+      if (this.playerDead) return
       for (let i = 0; i < count; i++) {
         const frame = this.outQueue.shift() ?? SILENCE
         if (!player.stdin.destroyed) player.stdin.write(frame)

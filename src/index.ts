@@ -84,6 +84,7 @@ async function main(): Promise<void> {
       speakerDeviceIndex: config.local.speakerDeviceIndex,
       muteWhileSpeaking: config.local.muteWhileSpeaking,
       isPlaying: () => activeCall?.playback.isPlaying() ?? false,
+      bus,
     })
     const call = new Call('local', leg, bus, config, toggles)
     activeCall = call

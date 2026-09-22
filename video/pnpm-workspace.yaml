@@ -1,0 +1,9 @@
+# video/ is deliberately its own pnpm root, not a member of the repo's workspace.
+# Remotion pulls React, a bundler and an ffmpeg toolchain, and the point of the main
+# package is that `pnpm install` gets you one dependency. Keeping the lockfiles apart
+# means nobody building the demo pays for the video.
+packages:
+  - '.'
+
+allowBuilds:
+  esbuild: true
