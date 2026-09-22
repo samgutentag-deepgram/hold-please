@@ -80,6 +80,28 @@ async function main(): Promise<void> {
   }
 
   if (local) {
+    // Check the keys before touching an audio device. This is the command the README's
+    // quickstart tells a first-time reader to run, and it used to throw an unhandled error
+    // with absolute paths in it when a key was missing. Say what is wrong and keep the
+    // dashboard up, which is the same rule the rest of the app follows.
+    const missing = [
+      config.deepgram.apiKey ? null : 'DEEPGRAM_API_KEY',
+      config.llm.apiKey ? null : 'ANTHROPIC_API_KEY (or LLM_API_KEY)',
+    ].filter((n): n is string => n !== null)
+    if (missing.length > 0) {
+      console.error(
+        `\n[local] Cannot start a call: ${missing.join(' and ')} ${missing.length > 1 ? 'are' : 'is'} not set.\n` +
+        `[local] Copy sample.env to .env and fill those in, then run this again.\n` +
+        `[local] The dashboard is still up at http://${config.host}:${config.port} if you want to look around.\n`,
+      )
+      bus.emit({
+        kind: 'socket.degraded',
+        which: 'stt',
+        detail: `${missing.join(' and ')} not set. See the README quickstart.`,
+      })
+      return
+    }
+
     const [mic, speaker] = await Promise.all([
       resolveMic(config.local.micDevice),
       resolveSpeaker(config.local.speakerDevice),
