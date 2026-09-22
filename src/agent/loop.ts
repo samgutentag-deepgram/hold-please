@@ -12,17 +12,18 @@ import { FALLBACK_LINE, GREETING } from './prompt.ts'
 // Turn orchestration. Flux decides when the caller has finished; this loop decides what the
 // agent does about it. Two personalities, selected by the toggles, on the same sockets:
 //
-//   Fixed (naiveMode off)
-//     StartOfTurn while speaking  -> barge-in: cut audio, Interrupt with the playback offset
-//     EagerEndOfTurn (if eagerEot)-> start a speculative LLM turn, buffered, not spoken
-//     TurnResumed                 -> cancel it
-//     EndOfTurn                   -> promote the speculative turn, or start one; stream into TTS
-//     SpeechInterrupted           -> the transcript keeps only what the caller heard
+// Two behaviours, and they are independent, which is the point. Barge-in is about what happens
+// while the agent is speaking. Turn detection is about who decides the caller finished. Bundling
+// them into one "naive mode" switch meant beat 1 and beat 4 shared a lever, and meant fixing
+// things by switching them off. Both are now their own toggle, both default off.
 //
-//   Naive (naiveMode on), the way most first voice agents are actually built
-//     ignore Flux's turn events; a fixed silence timer decides the turn is over
-//     no barge-in: the agent finishes its sentence over the caller
-//     no Interrupt reconciliation, so the transcript believes everything was heard
+//   bargeIn off  the agent talks over the caller and never learns what was heard
+//   bargeIn on   StartOfTurn while speaking cuts the audio and sends Interrupt with the
+//                playback offset; SpeechInterrupted trims history to what the caller heard
+//
+//   smartEot off a fixed silence timer decides the turn is over, firing on any pause
+//   smartEot on  Flux's EndOfTurn decides, with EagerEndOfTurn driving speculation when
+//                eagerEot is also on, and TurnResumed cancelling it
 
 export interface LoopDeps {
   bus: Bus
@@ -83,8 +84,8 @@ export class AgentLoop {
     this.setState('idle')
   }
 
-  private get naive(): boolean {
-    return this.deps.toggles().naiveMode
+  private get smartEot(): boolean {
+    return this.deps.toggles().smartEot
   }
 
   private setState(state: AgentState): void {
@@ -96,18 +97,25 @@ export class AgentLoop {
   // ---- Flux turn events -------------------------------------------------------------------
 
   private onTurn(info: TurnInfo): void {
-    if (this.naive) {
+    const toggles = this.deps.toggles()
+
+    // Barge-in first, and regardless of who is deciding turns. The Flux agent guide's rule:
+    // interrupt if speaking, otherwise wait.
+    if (info.event === 'StartOfTurn') {
+      if (toggles.bargeIn && this.state === 'speaking') this.bargeIn()
+      else if (this.state !== 'speaking' && this.state !== 'thinking') this.setState('listening')
+    }
+
+    if (!this.smartEot) {
       this.onTurnNaive(info)
       return
     }
+
     switch (info.event) {
       case 'StartOfTurn':
-        // The Flux agent guide's rule: interrupt if speaking, otherwise wait.
-        if (this.state === 'speaking') this.bargeIn()
-        else if (this.state !== 'thinking') this.setState('listening')
-        return
+        return // handled above
       case 'EagerEndOfTurn':
-        if (this.deps.toggles().eagerEot && info.transcript.trim()) this.speculate(info.transcript.trim())
+        if (toggles.eagerEot && info.transcript.trim()) this.speculate(info.transcript.trim())
         return
       case 'TurnResumed':
         this.cancelSpeculation()
@@ -120,11 +128,9 @@ export class AgentLoop {
     }
   }
 
-  /** A silence timer instead of turn detection. Fires mid-sentence on any pause. */
+  /** A silence timer instead of turn detection. Fires mid-sentence on any pause. State on
+   *  StartOfTurn is already handled in onTurn, because barge-in does not depend on this. */
   private onTurnNaive(info: TurnInfo): void {
-    if (info.event === 'StartOfTurn' && this.state !== 'speaking' && this.state !== 'thinking') {
-      this.setState('listening')
-    }
     if (info.transcript.trim()) this.naiveText = info.transcript.trim()
     if (info.event === 'EndOfTurn') {
       // Flux has moved on to the next turn index; whatever we have is what the timer will use.

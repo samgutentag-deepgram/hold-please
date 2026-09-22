@@ -7,13 +7,18 @@ import { validateParams } from '../stt/flux.ts'
 // The one rule this file exists to enforce: eagerEotThreshold <= eotThreshold, checked here
 // before any socket sees it, because Flux drops the connection otherwise.
 
+// Every switch is off by default and every switch means "the better behaviour is on". Nothing
+// here is turned OFF to fix something: the naive agent is the starting state, and each beat turns
+// one thing ON. That is a stage requirement, not a style preference. Settled 2026-09-22.
 export interface Toggles {
-  /** Bypass Flux turn detection for a silence timer, no keyterms, no interrupt reconciliation. */
-  naiveMode: boolean
+  /** Cut the agent off when the caller starts talking, and reconcile with Interrupt. Beat 1. */
+  bargeIn: boolean
   /** Send the keyterm list on the live socket. Beat 2. */
   keyterms: boolean
-  /** Speculative LLM calls on EagerEndOfTurn. Beat 3. */
+  /** Speculative LLM calls on EagerEndOfTurn. Beat 3. Requires smartEot. */
   eagerEot: boolean
+  /** Let Flux decide the turn is over instead of a dumb silence timer. Beat 4. */
+  smartEot: boolean
   eagerEotThreshold: number
   eotThreshold: number
   eotTimeoutMs: number
@@ -25,16 +30,18 @@ export type ToggleName = keyof Toggles
 export type ToggleValue = Toggles[ToggleName]
 
 export const DEFAULT_TOGGLES: Readonly<Toggles> = Object.freeze({
-  naiveMode: false,
+  bargeIn: false,
   keyterms: false,
   eagerEot: false,
+  smartEot: false,
   eagerEotThreshold: 0.5,
   eotThreshold: 0.7,
   eotTimeoutMs: 5000,
   multilingual: false,
 })
 
-/** How long the naive silence timer waits before calling the turn over. Deliberately dumb. */
+/** How long the silence timer waits before calling the turn over when smartEot is off.
+ * Deliberately dumb: this is how most first voice agents are actually built. */
 export const NAIVE_SILENCE_MS = 1200
 
 export const TOGGLE_LIMITS = {
@@ -58,6 +65,11 @@ export function validateToggle(current: Toggles, name: string, value: unknown): 
     if (limits && (value < limits.min || value > limits.max)) {
       return { ok: false, reason: `${name} must be between ${limits.min} and ${limits.max}` }
     }
+  }
+  // Speculation is promoted at EndOfTurn, which only exists when Flux is deciding the turn.
+  // Turning eager on without smart end-of-turn would light a switch that does nothing.
+  if (next.eagerEot && !next.smartEot) {
+    return { ok: false, reason: 'eagerEot needs smartEot on, speculation has nothing to promote' }
   }
   const problem = validateParams({
     eotThreshold: next.eotThreshold,

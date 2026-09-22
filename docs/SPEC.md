@@ -80,7 +80,8 @@ without dropping the call.
 
 | Toggle | Type | Serves | Effect |
 |---|---|---|---|
-| `naiveMode` | bool | Beats 1, 2, 4 | Bypasses Flux turn detection for a simple silence-based VAD, disables keyterms, disables `Interrupt` handling. This one switch is what makes every failure land, because the room can see it is the same agent |
+| `bargeIn` | bool | Beat 1 | Cut the agent when the caller starts talking, and reconcile with `Interrupt` / `text_spoken`. Off, the agent talks over the caller and believes it was heard |
+| `smartEot` | bool | Beat 4 | Let Flux's `EndOfTurn` decide the turn is over. Off, a dumb 1200 ms silence timer decides, which is how most first voice agents are actually built |
 | `keyterms` | bool | Beat 2 | Sends `Configure` with the keyterm list on the live socket |
 | `eagerEot` | bool | Beat 3 | Enables speculative execution |
 | `eagerEotThreshold` | number 0.3 to 0.9 | Beat 3 | **Must be <= `eotThreshold`.** UI must block the invalid combination, not let the presenter discover it on stage |

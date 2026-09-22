@@ -82,11 +82,16 @@ see an error.
 
 | Key | Does |
 |---|---|
-| `1` | naive mode. The big one: ignores Flux's end-of-turn, uses a dumb silence timer, no keyterms, no interrupt handling. This is how the same agent fails on cue |
+| `1` | barge-in. Off, the agent talks over you and never learns what you heard. On, it cuts and reports `text_spoken` |
 | `2` | keyterms, pushed to the open socket |
 | `3` | eager end of turn |
-| `4` | multilingual model. The only toggle that reconnects, and it says so |
+| `4` | smart end of turn. Off, a dumb 1200 ms silence timer decides you are done. On, Flux decides |
+| `5` | multilingual model. The only toggle that reconnects, and it says so |
 | `R` | replay the last turn's confidence trace at quarter speed |
+
+Every switch starts off and every switch means "on is better". You never turn something off to
+fix it. `3` needs `4` on first, because a speculative turn is promoted at end of turn and the
+silence timer never produces one.
 
 The eager, eot and timeout sliders apply live. The UI will not let eager exceed eot, because Flux
 drops the connection if it does.

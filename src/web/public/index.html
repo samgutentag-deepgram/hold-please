@@ -70,6 +70,10 @@
   #agent { color: var(--agent); }
   #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
   .empty { color: var(--dim); font-weight: 500; }
+  /* A 45 second ramble overflows this zone and used to clip mid-glyph, worse once the
+     "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping. */
+  .text { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+  .sw.pending { opacity: 0.45; }
 
   .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 12px 16px; }
   /* Row 2 is the frozen trace of the turn that just ended. Hidden until there is one to show.
@@ -114,10 +118,11 @@
   </header>
 
   <div id="toggles">
-    <label class="sw danger"><input type="checkbox" data-toggle="naiveMode"><span class="track"></span><span class="lbl">naive mode</span><kbd>1</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="bargeIn"><span class="track"></span><span class="lbl">barge-in</span><kbd>1</kbd></label>
     <label class="sw"><input type="checkbox" data-toggle="keyterms"><span class="track"></span><span class="lbl">keyterms</span><kbd>2</kbd></label>
     <label class="sw"><input type="checkbox" data-toggle="eagerEot"><span class="track"></span><span class="lbl">eager EOT</span><kbd>3</kbd></label>
-    <label class="sw"><input type="checkbox" data-toggle="multilingual"><span class="track"></span><span class="lbl">multilingual</span><kbd>4</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="smartEot"><span class="track"></span><span class="lbl">smart EOT</span><kbd>4</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="multilingual"><span class="track"></span><span class="lbl">multilingual</span><kbd>5</kbd></label>
     <label class="sl">eager <input type="range" data-toggle="eagerEotThreshold" min="0.3" max="0.9" step="0.05"><output>0.50</output></label>
     <label class="sl">eot <input type="range" data-toggle="eotThreshold" min="0.5" max="0.9" step="0.05"><output>0.70</output></label>
     <label class="sl">timeout <input type="range" data-toggle="eotTimeoutMs" min="500" max="10000" step="100"><output>5000</output></label>
@@ -188,7 +193,11 @@
     // The marker on the live bar is where the turn will fire. It has to move with the dial,
     // or beat 4 shows a line standing still while the presenter drags the slider.
     el.barThr.style.left = (toggles.eotThreshold * 100) + '%'
-    for (const sw of tgSwitches) sw.checked = !!toggles[sw.dataset.toggle]
+    for (const sw of tgSwitches) {
+      sw.checked = !!toggles[sw.dataset.toggle]
+      // Speculation is promoted at EndOfTurn, so eager is meaningless until Flux owns the turn.
+      if (sw.dataset.toggle === 'eagerEot') sw.closest('.sw').classList.toggle('pending', !toggles.smartEot)
+    }
     for (const sl of tgSliders) {
       const name = sl.dataset.toggle
       // The UI enforces the one rule Flux enforces with a disconnect: eager can never exceed eot.
@@ -214,7 +223,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.target.type === 'range' || e.metaKey || e.ctrlKey || e.altKey) return
     if (e.key === 'r' || e.key === 'R') { replayTrace(); return }
-    const i = ['1', '2', '3', '4'].indexOf(e.key)
+    const i = ['1', '2', '3', '4', '5'].indexOf(e.key)
     if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
 
@@ -289,6 +298,7 @@
 
   function setCaller(text, interim) {
     el.caller.textContent = text || (interim ? '…' : '')
+    el.caller.scrollTop = el.caller.scrollHeight
     el.caller.classList.toggle('interim', !!interim)
     el.caller.classList.remove('empty')
   }

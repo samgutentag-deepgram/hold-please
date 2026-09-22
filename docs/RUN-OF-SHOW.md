@@ -64,10 +64,10 @@ is the harness; toggle multilingual on and say the name).
 **On stage:** the presenter calls the number, the agent starts a long answer, the presenter talks
 over it mid-sentence.
 
-**Broken (naive mode on):** the agent either keeps talking over the caller, or stops and loses its
+**Broken (`bargeIn` off, the default):** the agent either keeps talking over the caller, or stops and loses its
 place, then repeats itself or answers the wrong question.
 
-**Fixed (naive mode off):** Flux's `StartOfTurn` fires reliably, TTS is cut, and the `Interrupt`
+**Fixed (`bargeIn` on):** Flux's `StartOfTurn` fires reliably, TTS is cut, and the `Interrupt`
 server message on the speak socket carries `text_spoken`, which is exactly what the caller heard
 before cutting in. The agent resumes from there instead of from the top.
 
@@ -75,7 +75,7 @@ before cutting in. The agent resumes from there instead of from the top.
 That single field is the beat. Also a visible state pill moving between listening, thinking and
 speaking, so the room can see the barge-in land.
 
-**Fix mechanism:** a toggle. No reconnect.
+**Fix mechanism:** turn `bargeIn` on. No reconnect.
 
 ---
 
@@ -138,7 +138,8 @@ hazard the talk is named after.
 
 **On stage:** the presenter talks for around 45 seconds with no clean stopping point.
 
-**Broken:** naive mode either cuts them off after a couple of seconds of silence or waits forever.
+**Broken (`smartEot` off, the default):** the silence timer cuts them off after 1200 ms of
+pause, or the agent waits forever. Flux knows the turn ended; nothing is listening to it.
 
 **Fixed:** tune `eot_timeout_ms` and `eot_threshold` live, framed as product decisions rather than
 config values.
@@ -190,3 +191,21 @@ dropped in without breaking the narrative. The presenter must be able to switch 
 apologising. See `PHASES.md` Phase 6.
 
 The app is not responsible for playing the video. Keep that outside the app.
+
+
+---
+
+## Toggle polarity, and the one dependency
+
+Settled 2026-09-22. Every switch starts off and every switch means "on is better". The presenter
+never turns something off to fix it. Keys are `1` barge-in, `2` keyterms, `3` eager EOT,
+`4` smart EOT, `5` multilingual, and `R` replays the last turn's trace at quarter speed.
+
+**Open, and it changes this document's beat order.** `eagerEot` requires `smartEot`, because
+speculation is promoted at `EndOfTurn` and the silence timer never produces one. As written, beat 3
+(the false start) arrives before beat 4 has turned `smartEot` on, so beat 3 would have to switch on
+beat 4's reveal to work.
+
+The clean fix is to swap them: barge-in, keyterms, **the rambler**, **the false start**. Then each
+beat turns on exactly one new switch, the keys are pressed in order, and the demo ends on the tool
+call that cannot be un-fired, which leads straight into the checklist slide. Sam's call.

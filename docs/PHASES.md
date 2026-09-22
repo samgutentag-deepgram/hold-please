@@ -77,7 +77,7 @@ ago and watch it come back correct on the same call.
 `toggle.changed`, and applied to the live socket through `stt.configure()` from `src/call.ts`.
 `multilingual` is the one exception: the model is a connection parameter, so it reconnects and says
 so with `reconnected: true`. The dashboard has the toggle row, keys 1 to 4 for the four switches,
-and the eager slider's maximum is bound to the eot slider. `naiveMode` is implemented in the loop as
+and the eager slider's maximum is bound to the eot slider. `bargeIn` and `smartEot` are implemented in the loop as
 a 1200 ms silence timer with no barge-in. Beat 2 needs a live run with the code in
 `docs/SCRIPT.md` to close the exit criterion.
 
@@ -104,7 +104,7 @@ rehearsal: `docs/SCRIPT.md` has the lines.
 
 ## Phase 6 — Fallbacks and audio
 
-Recorded MP4 of every beat in both naive and fixed mode, cut so any single beat can be dropped in
+Recorded MP4 of every beat in both the default and the fixed state, cut so any single beat can be dropped in
 without breaking the narrative.
 
 Audio path hardening: headset in, server tee to the PA, mute-while-speaking guard, PA bleed test.

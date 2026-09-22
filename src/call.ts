@@ -26,9 +26,9 @@ export function fluxParamsFor(toggles: Readonly<Toggles>, model: string, keyterm
     model,
     eotThreshold: toggles.eotThreshold,
     eotTimeoutMs: toggles.eotTimeoutMs,
-    keyterms: toggles.keyterms && !toggles.naiveMode ? [...keyterms] : [],
+    keyterms: toggles.keyterms ? [...keyterms] : [],
   }
-  if (toggles.eagerEot && !toggles.naiveMode) params.eagerEotThreshold = toggles.eagerEotThreshold
+  if (toggles.eagerEot && toggles.smartEot) params.eagerEotThreshold = toggles.eagerEotThreshold
   return params
 }
 
