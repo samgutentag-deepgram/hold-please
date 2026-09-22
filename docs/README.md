@@ -62,6 +62,11 @@ wifi, not for architecture.
 1. **20 minutes total.** Every feature competes for seconds.
 2. **No live coding on stage.** Every on-stage change is a pre-wired toggle in the browser. If a
    beat needs a file edit or a restart, the beat is wrong.
+   **Under review as of 2026-09-22**, because Liz is live coding in the slot before ours and
+   assumes we are too. See `LIVE-CODING.md`. The part of this constraint that is not negotiable
+   either way is the **restart**: `node --watch` restarts on a file save and a restart drops the
+   call, which breaks constraint 3. Any live editing has to be a file the running process reads,
+   not a file it imports.
 3. **No reconnects mid-beat.** All four on-stage changes apply to a socket that stays open. This
    is the single most important technical requirement in the whole build. (An earlier version of
    this line said "three of the four", inherited from a comparison table in the planning repo. It
