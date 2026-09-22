@@ -71,7 +71,10 @@
   #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
   .empty { color: var(--dim); font-weight: 500; }
   /* A 45 second ramble overflows this zone and used to clip mid-glyph, worse once the
-     "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping. */
+     "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping.
+     Deliberately NOT the CSS-only version (flex-direction: column-reverse, or justify-content:
+     flex-end). Those bottom-align a short turn too, and the page should top-align a short turn
+     and pin only when it overflows. Convenience is not worth that. */
   .text { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
   .sw.pending { opacity: 0.45; }
 
@@ -329,7 +332,7 @@
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
       case 'call.started': el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
-      case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); break
+      case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); el.agent.scrollTop = el.agent.scrollHeight; break
       case 'tts.interrupt':
         el.agent.innerHTML = ''
         el.agent.append(document.createTextNode(e.textSpoken || '(cut before a word was heard)'))
@@ -361,6 +364,18 @@
     const s = Math.max(0, Math.floor((busNow - callStartedAt) / 1000))
     el.uptime.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }, 250)
+
+  // Fonts resolve asynchronously, and a scrollTop written before they land is measured against
+  // the wrong line heights and collapses to zero. A live browser repaints and recovers, so this
+  // never shows up on stage. A screenshot does not: capture the page mid-ramble for a slide, or
+  // for the Phase 3 legibility test, and you get the head of the transcript where the room sees
+  // the tail. It looks plausible, which is what makes it dangerous. Found by the video session,
+  // whose renderer captures as soon as the layout settles.
+  function pinTranscripts() {
+    for (const node of [el.caller, el.agent]) node.scrollTop = node.scrollHeight
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(pinTranscripts)
+  window.addEventListener('resize', pinTranscripts)
 
   let backoff = 500
   function connect() {
