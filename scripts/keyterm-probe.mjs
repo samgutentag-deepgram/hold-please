@@ -11,10 +11,13 @@ import { readFileSync } from 'node:fs'
 const key = process.env.DEEPGRAM_API_KEY
 const phrases = process.argv.slice(2)
 const H = { Authorization: `Token ${key}` }
+// RATE defaults to 8000 because that is what the app and a phone line run at. A keyterm result
+// measured at 16000 on studio audio does not transfer to a band-limited call. RATE=16000 to compare.
+const RATE = Number(process.env.RATE ?? 8000)
 
 function synth(text, voice) {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`wss://api.deepgram.com/v2/speak?model=${voice}&encoding=linear16&sample_rate=16000`, { headers: H })
+    const ws = new WebSocket(`wss://api.deepgram.com/v2/speak?model=${voice}&encoding=linear16&sample_rate=${RATE}`, { headers: H })
     const chunks = []
     ws.on('open', () => { ws.send(JSON.stringify({ type: 'Speak', text })); ws.send(JSON.stringify({ type: 'Flush' })) })
     ws.on('message', (d, bin) => { if (bin) chunks.push(d); else { const m = JSON.parse(d.toString()); if (m.type === 'SpeechMetadata') { ws.send(JSON.stringify({ type: 'Close' })) } if (m.type === 'Error') reject(new Error(m.description)) } })
@@ -26,14 +29,14 @@ function synth(text, voice) {
 function transcribe(pcm, keyterms) {
   return new Promise((resolve, reject) => {
     const u = new URL('wss://api.deepgram.com/v2/listen')
-    u.searchParams.set('model', 'flux-general-en'); u.searchParams.set('encoding', 'linear16'); u.searchParams.set('sample_rate', '16000')
+    u.searchParams.set('model', 'flux-general-en'); u.searchParams.set('encoding', 'linear16'); u.searchParams.set('sample_rate', String(RATE))
     u.searchParams.set('eot_timeout_ms', '1500')
     for (const k of keyterms) u.searchParams.append('keyterm', k)
     const ws = new WebSocket(u, { headers: H })
     const finals = []
     ws.on('open', async () => {
       // pad with a second of silence so the turn closes, then stream in 20 ms frames at 4x speed
-      const audio = Buffer.concat([pcm, Buffer.alloc(16000 * 2 * 2)])
+      const audio = Buffer.concat([pcm, Buffer.alloc(RATE * 2 * 2)])
       for (let i = 0; i < audio.length; i += 6400) { ws.send(audio.subarray(i, i + 6400)); await new Promise(r => setTimeout(r, 20)) }
       ws.send(JSON.stringify({ type: 'CloseStream' }))
     })

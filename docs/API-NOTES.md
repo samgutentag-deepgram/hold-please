@@ -99,3 +99,28 @@ A comped or upgraded developer account is required.
 - The Nova-3 "54.2% WER reduction" figure. Internal Feb 2025 benchmark, unvalidated externally,
   and it predates Flux, which matches rather than beats Nova-3 on WER
 - Any pricing, anywhere in the UI or on a slide
+
+
+## Keyterms at 8 kHz, measured 2026-09-22
+
+The beat 2 gate was only ever measured at 16 kHz on a studio mic, which is a finding about a
+studio mic. Re-run with `scripts/keyterm-probe.mjs`, which now takes `RATE` and defaults to 8000,
+synthesizing and transcribing at the rate a phone line actually delivers. Two voices:
+
+| Phrase | Keyterms off | Keyterms on |
+|---|---|---|
+| "...the account is Gutentag." | `Guten Tag` | `Gutentag` |
+| "...book Brisket in for daycare..." | `brisket` | `Brisket` |
+| "Is this Bramble Hill Pet Lodge?" | `Bramble Hill Pet Lodge` | `Bramble Hill Pet Lodge` |
+
+**Beat 2 survives the rate change.** The surname splits without keyterms and joins with them, on
+`flux-haley-en` and `flux-marcus-en` alike, at 8 kHz.
+
+**Neither of the other two keyterms produces a visible failure**, which matters because they ride
+along on the same toggle. "Brisket" only changes case, and "Bramble Hill" is identical both ways.
+So flipping keyterms changes exactly one thing the room can read, which is what the beat needs.
+
+**What this does not prove.** Synthetic TTS at 8 kHz is not a phone line: no codec, no handset, no
+room. The Tuolumne failure on 2026-09-10 flipped for synthetic voices and not for Sam's, so a
+synthetic pass is necessary and not sufficient. Still outstanding: the same probe against a
+recording of Sam's voice downsampled to 8 kHz, and then a real call.
