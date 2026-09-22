@@ -35,21 +35,37 @@ src/
   replay.ts         events + a time in ms -> the exact state the dashboard would be in
   dashboardCss.ts   the app's stylesheet, verbatim
   components/
-    Dashboard.tsx   the app's markup, re-rendered from a replay state
-    ToggleMoment.tsx the close-up of the switch moving, with the no-reconnect proof
-    CompareCard.tsx  the frozen before/after still
-    Caption.tsx      the burned-in caption band (the video is silent on purpose)
-    Chrome.tsx       the BROKEN / FIXED chip
+    Dashboard.tsx        the app's markup, re-rendered from a replay state
+    OrientationStrip.tsx the every-frame header: what this is, which beat, how far in
+    ToggleMoment.tsx     the close-up of the switch moving, with the no-reconnect proof
+    CompareCard.tsx      the frozen before/after still
+    Caption.tsx          the burned-in caption band (the video is silent on purpose)
+    Chrome.tsx           the BROKEN / FIXED chip
   scenes/
+    ColdOpen.tsx    six seconds of the failure, no caption, before the title
     TitleCard.tsx   the opener and the per-beat cards
     Beat.tsx        title -> one continuous call -> compare still
     Checklist.tsx   the four questions from docs/SCRIPT.md
     Outro.tsx       repo and startup programs
-    Master.tsx      the loop
+    Master.tsx      the loop, and the timeline the strip reads
   fixtures/
     beats.ts        the four beats as event timelines
     fromJsonl.ts    the migration path onto real recordings
 ```
+
+**The loop is built for someone who arrives at a random frame.** At The Kinn a viewer is
+standing, about 15 feet away, with no audio, and will leave before the loop comes round. So
+the orientation strip is on every frame rather than being a card at the start, and the cold
+open opens on the failure rather than on a title. `Master.tsx` builds one `TIMELINE` array
+that both `Series` and the strip read, so a duration change cannot leave the strip announcing
+the wrong section.
+
+**Pinning the transcript to the tail needs `delayRender`.** The live page sets `scrollTop` in
+`setCaller()`. In a render, a scrollTop measured before the webfonts land is measured against
+the wrong line heights and comes out as zero, which shows the head of a long turn where the
+app shows the tail. `useTailPin` in `Dashboard.tsx` holds the frame until
+`document.fonts.ready`, then pins. Short turns do not overflow, so it is a no-op and they
+stay top aligned exactly as in the app.
 
 **The dashboard is one mounted component for a whole beat.** That is deliberate. The socket
 uptime counter climbs straight through the fix, and "I did not reconnect" is the claim the room

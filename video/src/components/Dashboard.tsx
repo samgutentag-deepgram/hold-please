@@ -1,4 +1,5 @@
 import React from 'react'
+import { continueRender, delayRender } from 'remotion'
 import { dashboardCss } from '../dashboardCss.ts'
 import { mmss, type DashState, type TracePoint } from '../replay.ts'
 import type { ToggleName } from '../types.ts'
@@ -107,22 +108,43 @@ const Trace: React.FC<{ s: DashState }> = ({ s }) => {
 }
 
 /**
- * The transcript zones scroll to the tail rather than clipping, matching setCaller() on the
- * live page. A render is a fresh frame every time, so this has to run on every frame rather
- * than on mount, or a long turn shows its first line while the app would show its last.
+ * Pins a transcript zone to the tail of the turn, the way setCaller() does on the live page.
+ *
+ * Two mechanisms, because one is not enough. The layout effect covers every frame after the
+ * first. The delayRender covers the first: a frame is captured as soon as React settles, and
+ * a scrollTop measured before the webfonts land is measured against the wrong line heights
+ * and comes out as zero, which shows the head of a long turn where the app shows the tail.
+ * Holding the frame until `document.fonts.ready` is the only way to make a still and a video
+ * render agree. Short turns do not overflow, so both are no-ops and the text stays top
+ * aligned exactly as it does in the app.
  */
-function useScrollToTail(text: string) {
+function useTailPin() {
   const ref = React.useRef<HTMLDivElement>(null)
+  const [handle] = React.useState(() => delayRender('pin transcript to tail'))
+
+  React.useEffect(() => {
+    let cancelled = false
+    const pin = () => {
+      if (cancelled) return
+      if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
+      continueRender(handle)
+    }
+    document.fonts.ready.then(pin, pin)
+    return () => {
+      cancelled = true
+    }
+  }, [handle])
+
   React.useLayoutEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
   })
-  void text
+
   return ref
 }
 
 export const Dashboard: React.FC<{ state: DashState; height?: number }> = ({ state: s, height }) => {
-  const callerRef = useScrollToTail(s.caller.text)
-  const agentRef = useScrollToTail(s.agent.text)
+  const callerRef = useTailPin()
+  const agentRef = useTailPin()
   const sliderVal = (name: ToggleName) =>
     name === 'eotTimeoutMs' ? String(s.toggles[name]) : Number(s.toggles[name]).toFixed(2)
 

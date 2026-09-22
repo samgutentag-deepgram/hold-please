@@ -8,7 +8,7 @@ import { ToggleMoment } from '../components/ToggleMoment.tsx'
 import { carryIn, type BeatSpec } from '../fixtures/beats.ts'
 import { replay } from '../replay.ts'
 import type { Toggles } from '../types.ts'
-import { CAPTION_H, FPS, HEIGHT, color, sec } from '../theme.ts'
+import { DASH_H, FPS, color, sec } from '../theme.ts'
 import { BeatTitle } from './TitleCard.tsx'
 
 // One beat = title card, then one continuous call, then the still that compares the two halves.
@@ -16,8 +16,6 @@ import { BeatTitle } from './TitleCard.tsx'
 // The dashboard is a single mounted component for the whole run. That matters more than it
 // looks: the socket-uptime counter has to climb straight through the fix, because "I did not
 // reconnect" is the claim the room finds hardest to believe.
-
-const DASH_H = HEIGHT - CAPTION_H
 
 const Run: React.FC<{ spec: BeatSpec; n: number; carried: Partial<Toggles> }> = ({
   spec,

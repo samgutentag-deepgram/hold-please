@@ -56,9 +56,9 @@ export const dashboardCss = `
 .who { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
 .text { font-size: clamp(34px, 4.2vw, 64px); line-height: 1.15; font-weight: 700; overflow: hidden; text-wrap: balance; }
 /* A 45 second ramble overflows this zone and used to clip mid-glyph, worse once the
-   "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping.
-   The video pins scrollTop the way setCaller() does on the live page; see Dashboard.tsx. */
+   "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping. */
 .text { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
 #caller { color: var(--caller); }
 #caller.interim { color: var(--dim); font-weight: 500; }
 #agent { color: var(--agent); }

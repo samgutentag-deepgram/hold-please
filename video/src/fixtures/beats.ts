@@ -363,8 +363,12 @@ export const beat3: BeatSpec = {
     said: 'So I was looking at my bill and I noticed that… the August one was higher than July',
     before: { label: 'Eager 0.50', text: '2 issued, 1 used', note: 'One wasted inference per false start. At scale that is 50 to 70% more LLM calls for about 200 ms.' },
     after: { label: 'Eager 0.80', text: '1 issued, 1 used', note: 'Zero waste, and a slower first token. Neither column is the right answer.' },
+    // Closes on the counter rather than on a tool call, decided 2026-09-22. The hazard is
+    // framed as production behaviour and never asserted as something that just happened,
+    // because the demo has no tools and the loop must not point at anything the dashboard
+    // did not render. Issued versus used is real, on screen, and makes the same point.
     footnote:
-      'The real bill is side effects. A speculative turn that calls a tool dispatches it immediately: it can charge a card before the turn resumes and the reply is thrown away. Set defer_until_eot on anything you cannot take back.',
+      'Two issued, one used, and the one you paid for was never heard. In production that same pause can reach a tool, and a tool that runs does not un-run. Defer anything with consequences until the turn is actually over.',
   },
 }
 
