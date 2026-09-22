@@ -123,7 +123,24 @@ get progressively more interesting:
    charge a card, book a slot or send an email, and *then* the turn resumes and the reply is
    discarded. The side effect is not. **Use the lodge's own version, it is a better picture than a
    credit card:** the caller pauses halfway through "I want to book Brisket in for grooming on
-   Thursday, actually make it Friday", and the agent has already taken the Thursday slot. Deepgram's own guidance is to set `defer_until_eot: true` on
+   Thursday, actually make it Friday", and the agent has already taken the Thursday slot. The
+   pause lands *inside* the sentence, so the speculative turn fires on a value the caller is in
+   the middle of retracting. The wrong thing is not merely early, it is wrong.
+
+> **OPEN, and it is the last honesty problem in the talk.** The demo has no tool calls, so the
+> dashboard never emits the booking. As written, the closing image is narration over an event
+> the screen cannot show, in a talk whose whole argument is that what is on the screen can be
+> trusted. Somebody will notice.
+>
+> Two ways out. **Build one tool**, a `book_grooming` function the speculative turn really
+> dispatches and really has cancelled, rendered as two events on the stats strip. Roughly two to
+> three hours, no external side effect, and it closes the gap between asserting the hazard and
+> showing it. It would also give us the one panel Liz has and we do not.
+>
+> Or **stop asserting it**: frame the side effect explicitly as what happens in production rather
+> than what just happened here. Free, weaker, and still honest.
+>
+> Sam's call. Do not let the talk assert a booking the dashboard did not render. Deepgram's own guidance is to set `defer_until_eot: true` on
    anything non-idempotent, and the managed API emits `FunctionCallCancelled` so you can roll back.
    On raw sockets it is entirely your problem.
 
