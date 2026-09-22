@@ -8,8 +8,8 @@ a beat below. If a proposed feature does not map to a beat, it does not get buil
 | 0:00 to 1:30 | **"Every demo works."** One slide, then slides close for good | Warm, with a call already up. Optional: the Gutentag gag, see below |
 | 1:30 to 5:00 | **Beat 1, barge-in** | Naive mode on, then off |
 | 5:00 to 8:30 | **Beat 2, the confirmation code** | Keyterms pushed mid-call |
-| 8:30 to 12:00 | **Beat 3, the false start** (the tradeoff, not a fix) | Eager EOT visible, then tuned |
-| 12:00 to 15:00 | **Beat 4, the rambler** | EOT params tuned mid-call |
+| 8:30 to 12:00 | **Beat 3, the rambler** | Smart EOT on, then params tuned mid-call |
+| 12:00 to 15:00 | **Beat 4, the false start** (the trade, not a fix) | Eager EOT on, the bill made visible |
 | 15:00 to 17:30 | **The checklist.** One slide, all four failures as a pre-launch checklist | Nothing |
 | 17:30 to 20:00 | **Handoff.** QR to the repo, both startup programs | Nothing |
 
@@ -101,7 +101,7 @@ the most demo-valuable capability in the stack. Build this beat first after the 
 
 ---
 
-## Beat 3 — The false start
+## Beat 4 — The false start (runs third-to-last; see the order note)
 
 **On stage:** the presenter pauses mid-sentence as if finished, then continues.
 
@@ -134,7 +134,7 @@ hazard the talk is named after.
 
 ---
 
-## Beat 4 — The rambler
+## Beat 3 — The rambler (runs before the false start)
 
 **On stage:** the presenter talks for around 45 seconds with no clean stopping point.
 
@@ -201,11 +201,15 @@ Settled 2026-09-22. Every switch starts off and every switch means "on is better
 never turns something off to fix it. Keys are `1` barge-in, `2` keyterms, `3` eager EOT,
 `4` smart EOT, `5` multilingual, and `R` replays the last turn's trace at quarter speed.
 
-**Open, and it changes this document's beat order.** `eagerEot` requires `smartEot`, because
-speculation is promoted at `EndOfTurn` and the silence timer never produces one. As written, beat 3
-(the false start) arrives before beat 4 has turned `smartEot` on, so beat 3 would have to switch on
-beat 4's reveal to work.
+**Settled 2026-09-22: the rambler runs before the false start.** `eagerEot` requires `smartEot`,
+because speculation is promoted at `EndOfTurn` and the silence timer never produces one. With the
+old order the false start would have had to switch on the rambler's reveal to work at all.
 
-The clean fix is to swap them: barge-in, keyterms, **the rambler**, **the false start**. Then each
-beat turns on exactly one new switch, the keys are pressed in order, and the demo ends on the tool
-call that cannot be un-fired, which leads straight into the checklist slide. Sam's call.
+The order is now **barge-in, keyterms, the rambler, the false start**, and the keys were renumbered
+to match so they are pressed 1, 2, 3, 4 straight down the rail. Each beat turns on exactly one new
+switch, and the demo ends on the tool call that cannot be un-fired, which is the most quotable
+thing in the talk and leads straight into the checklist slide.
+
+To undo: swap the two beat sections below, swap the `kbd` values for `smartEot` and `eagerEot` in
+`src/web/public/index.html`, and swap rows 3 and 4 of the key table in `README.md`. Nothing in the
+code depends on the order.

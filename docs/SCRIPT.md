@@ -1,5 +1,15 @@
 # Demo script
 
+> **STALE as of 2026-09-22, and being rewritten.** Every line below is written for the old
+> fiction, an electric utility called Harbor Light Electric with kilowatt hours and meter reads.
+> The demo is now **Bramble Hill Pet Lodge**, a dog boarding and daycare business, picking the
+> story up from Liz Acosta's pug rescue demo that runs immediately before ours. The caller adopted
+> the pug; now he has to board it. The beat order also changed: barge-in, keyterms, the rambler,
+> the false start. The *shape* of every beat still holds. The words do not. Do not rehearse from
+> this file until it is rewritten.
+
+
+
 The twenty minutes, timed, with what to press, what to say, and what the room should be looking
 at. Written to be read from a phone in the wings and to be shot as a video with no audience. Two
 cuts: **Talk** is the full slot. **Video** is the same beats at about nine minutes; skip anything

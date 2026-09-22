@@ -8,7 +8,7 @@ import { fakeClock, fakeFactory } from './fakeSocket.ts'
 const params = { model: 'flux-general-en', eotThreshold: 0.7, eotTimeoutMs: 5000, keyterms: [] as string[] }
 
 test('the URL carries every parameter under its real name, keyterms repeated', () => {
-  const url = new URL(buildFluxUrl({ ...params, eagerEotThreshold: 0.5, keyterms: ['A7', 'Harbor Light'] }))
+  const url = new URL(buildFluxUrl({ ...params, eagerEotThreshold: 0.5, keyterms: ['A7', 'Bramble Hill'] }))
   assert.equal(url.pathname, '/v2/listen')
   assert.equal(url.searchParams.get('model'), 'flux-general-en')
   assert.equal(url.searchParams.get('encoding'), 'linear16')
@@ -16,7 +16,7 @@ test('the URL carries every parameter under its real name, keyterms repeated', (
   assert.equal(url.searchParams.get('eot_threshold'), '0.7')
   assert.equal(url.searchParams.get('eot_timeout_ms'), '5000')
   assert.equal(url.searchParams.get('eager_eot_threshold'), '0.5')
-  assert.deepEqual(url.searchParams.getAll('keyterm'), ['A7', 'Harbor Light'])
+  assert.deepEqual(url.searchParams.getAll('keyterm'), ['A7', 'Bramble Hill'])
   assert.equal(url.searchParams.has('eot_silence_threshold_ms'), false, 'the stale blog parameter must never appear')
 })
 
