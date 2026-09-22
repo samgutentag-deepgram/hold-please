@@ -127,29 +127,19 @@ get progressively more interesting:
    pause lands *inside* the sentence, so the speculative turn fires on a value the caller is in
    the middle of retracting. The wrong thing is not merely early, it is wrong.
 
-> **OPEN, and it is the last honesty problem in the talk.** The demo has no tool calls, so the
-> dashboard never emits the booking. As written, the closing image is narration over an event
-> the screen cannot show, in a talk whose whole argument is that what is on the screen can be
-> trusted. Somebody will notice.
+> **DECIDED 2026-09-22: do not assert it, and do not build a tool.** The demo has no tool calls
+> and is not getting one. Beat 4 frames the side effect as **what happens in production**, not as
+> something that just happened on stage. "If that speculative turn had reached for a tool, the
+> tool would have run. Mark anything with consequences deferred." That is true, it is the lesson,
+> and it claims nothing the screen did not show.
 >
-> Two ways out. **Build one tool**, a `book_grooming` function the speculative turn really
-> dispatches and really has cancelled, rendered as two events on the stats strip. Roughly two to
-> three hours, no external side effect, and it closes the gap between asserting the hazard and
-> showing it. It would also give us the one panel Liz has and we do not.
+> **The rule this protects:** never let the talk assert an event the dashboard did not render.
+> Everything pointed at on stage has to be on the screen.
 >
-> Or **stop asserting it**: frame the side effect explicitly as what happens in production rather
-> than what just happened here. Free, weaker, and still honest.
->
-> **The two are not equally costed, and the reason only shows up from the video side.** On stage
-> option 2 is fine, because Sam is standing there and a person saying "this is what happens in
-> production" is believed. The booth loop is silent by design, because LA is a restaurant at
-> midday and a viewer arrives at a random frame from fifteen feet. Under option 2 the loop's last
-> thirty seconds are a caption asserting a hazard with nothing on screen behind it, in a video
-> whose credibility rests on every number having come from an event. That is the one frame where
-> the loop does the thing it spends three minutes arguing against.
->
-> So option 2 is free for the talk and expensive for the loop. Option 1 is two to three hours
-> once and pays into the talk, the booth loop, the per-beat stage fallbacks and the shareable cut.
+> **For the silent booth loop, which cannot lean on a presenter's voice:** close on the numbers
+> that *are* rendered rather than on a caption about a booking. The issued-versus-used counter
+> diverging is real, it is on screen, and it carries the same point without asserting anything.
+> The tool-call hazard is a line Sam says out loud, not a frame.
 >
 > Sam's call. Do not let the talk assert a booking the dashboard did not render. Deepgram's own guidance is to set `defer_until_eot: true` on
    anything non-idempotent, and the managed API emits `FunctionCallCancelled` so you can roll back.
