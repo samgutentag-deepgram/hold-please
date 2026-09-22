@@ -15,27 +15,8 @@ bundler, a component library, or the Deepgram SDK; the sockets are raw on purpos
 can be instrumented and broken on stage. Constructor parameter properties are not erasable syntax,
 so declare fields and assign them in the body.
 
-## Tracking, and the other session
+## Tracking
 
-**Asana is the only progress tracker.** Board: "Vonage Tech Week talk",
-https://app.asana.com/1/411927538413705/project/1217634344062073
-Do not create a to-do list, question list, or status table in this repo. The planning repo deleted
-two of those on 2026-09-10 for drifting.
-
-Two sessions work on this and both read and write the board. A Cowork session holds the email,
-Slack, calendar and partner context; this repo's coding session holds the code. Split by lane, not
-by tool:
-
-- **This session writes** task state whose evidence is in this repo: build tasks, phase status, the
-  dashboard, rehearsal, API notes. Close them, comment on them, cite the commit or file that proves
-  it.
-- **This session does not write** anything involving people, email, dates, partners or logistics.
-  Leave those to the Cowork session even when the board looks wrong.
-- **Every write cites its evidence** in the comment, so a disagreement is visible instead of silent.
-
-Read the board before reporting status, and prefer it over your own memory of what was done.
-
-The planning repo is `../vonage-demo`, private, not needed to write code. It holds the strategy, the
-event context and `.hub/ledger.md`, the append-only record of *why*. When a decision here changes
-the talk rather than the code, append an entry there. That ledger is how the other session learns
-what happened in this repo.
+Progress is tracked outside this repo. Do not create a to-do list, question list, or status table
+here; `docs/PHASES.md` is the only durable statement of where the build stands, and its exit
+criteria are the definition of done.
