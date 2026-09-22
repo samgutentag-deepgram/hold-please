@@ -140,6 +140,17 @@ get progressively more interesting:
 > Or **stop asserting it**: frame the side effect explicitly as what happens in production rather
 > than what just happened here. Free, weaker, and still honest.
 >
+> **The two are not equally costed, and the reason only shows up from the video side.** On stage
+> option 2 is fine, because Sam is standing there and a person saying "this is what happens in
+> production" is believed. The booth loop is silent by design, because LA is a restaurant at
+> midday and a viewer arrives at a random frame from fifteen feet. Under option 2 the loop's last
+> thirty seconds are a caption asserting a hazard with nothing on screen behind it, in a video
+> whose credibility rests on every number having come from an event. That is the one frame where
+> the loop does the thing it spends three minutes arguing against.
+>
+> So option 2 is free for the talk and expensive for the loop. Option 1 is two to three hours
+> once and pays into the talk, the booth loop, the per-beat stage fallbacks and the shareable cut.
+>
 > Sam's call. Do not let the talk assert a booking the dashboard did not render. Deepgram's own guidance is to set `defer_until_eot: true` on
    anything non-idempotent, and the managed API emits `FunctionCallCancelled` so you can roll back.
    On raw sockets it is entirely your problem.
