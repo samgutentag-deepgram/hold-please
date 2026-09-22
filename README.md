@@ -68,12 +68,31 @@ npm run dev -- --local       # microphone in, speakers out
 Open <http://127.0.0.1:3000> and talk. Everything downstream of the audio leg is identical to the
 phone path, so every beat works here.
 
-If ffmpeg cannot find your microphone, set `LOCAL_MIC_DEVICE` in `.env`. It is avfoundation
-syntax: `none:default` for the system default, or `:2` for device index 2. List your devices with:
+### If you hear nothing, or it will not start
+
+Two device settings, two different device lists, and they do not share numbering. This is the
+most common way a first run fails.
+
+**Microphone**, `LOCAL_MIC_DEVICE`, avfoundation syntax. `none:default` for the system default, or
+`:0` for audio input index 0:
 
 ```bash
 ffmpeg -f avfoundation -list_devices true -i ""
 ```
+
+**Speaker**, `LOCAL_SPEAKER_DEVICE`, a CoreAudio index. **`-1` is the system default and is what
+you want unless you have a reason.** The list mixes inputs and outputs, so picking an input index
+gives you `AudioQueueStart (-66637)` and no sound:
+
+```bash
+ffmpeg -f lavfi -i anullsrc -t 0.01 -f audiotoolbox -list_devices true -
+```
+
+Indices move when you plug things in, which is why `-1` is the safe default. A dead speaker no
+longer stops the run: you get a degraded banner and everything else keeps working, so you can
+still watch the transcript and the toggles.
+
+Use headphones, or set `LOCAL_MUTE_WHILE_SPEAKING=1`, or the agent hears itself.
 
 The dashboard boots with no keys at all, so if something is wrong you will see the page before you
 see an error.
