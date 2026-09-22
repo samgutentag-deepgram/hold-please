@@ -83,6 +83,9 @@ wifi, not for architecture.
 
 ## Event facts, for anything that renders a date
 
-- SF: Tue Oct 6 2026, 11:00 to 14:00 PT, Deepgram office, 505 Howard St #100
-- LA: Thu Oct 15 2026, 11:00 to 14:00 PT, The Kinn, 150 Horizon Ave, Venice
+- SF: Tue Oct 6 2026, a private office. Known network, scoutable room.
+- LA: Thu Oct 15 2026, a restaurant at midday hosting a full-day multi-sponsor summit.
+
+Venue addresses and arrival times are deliberately not in this repo. They belong to the event
+organisers, not to us, and this repo is public. The private planning repo has them.
 - LA is filmed by the venue and has walk-through traffic. **Design for LA.**
