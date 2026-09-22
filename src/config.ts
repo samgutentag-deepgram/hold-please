@@ -27,7 +27,7 @@ export interface Config {
   }
   local: {
     micDevice: string
-    speakerDeviceIndex: number
+    speakerDevice: string
     muteWhileSpeaking: boolean
   }
 }
@@ -77,11 +77,11 @@ export function loadConfig(): Config {
       keyterms: keytermsFromEnv(optional('DEMO_KEYTERMS')),
     },
     local: {
-      // avfoundation syntax: "none:default" for the default input, or ":N" for device index N.
+      // "none:default", ":N", or a name like "EarPods" resolved at startup.
       micDevice: optional('LOCAL_MIC_DEVICE') ?? 'none:default',
-      // audiotoolbox device index; -1 is the system default output. List with:
-      //   ffmpeg -f lavfi -i anullsrc -t 0.01 -f audiotoolbox -list_devices true -
-      speakerDeviceIndex: Number.parseInt(optional('LOCAL_SPEAKER_DEVICE') ?? '-1', 10),
+      // A CoreAudio index, or a name like "EarPods" resolved at startup by src/audio/devices.ts.
+      // -1 is the system default. Names are safer: indices renumber when you plug things in.
+      speakerDevice: optional('LOCAL_SPEAKER_DEVICE') ?? '-1',
       muteWhileSpeaking: flag('LOCAL_MUTE_WHILE_SPEAKING', false),
     },
   }
