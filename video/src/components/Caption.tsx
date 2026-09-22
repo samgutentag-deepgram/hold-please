@@ -10,14 +10,21 @@ export interface Cue {
   /** Seconds from the start of the scene. */
   at: number
   text: string
-  /** Optional lead-in in smaller type, for naming the beat step. */
+  /**
+   * Optional lead-in in smaller type, naming the step: "broken", "the fix", "fixed".
+   * It never carries the beat number. The number comes from the running order, so that
+   * reordering beats cannot leave a caption claiming to be beat 3 while it plays fourth.
+   */
   kicker?: string
   tone?: 'neutral' | 'bad' | 'good'
 }
 
 const toneColor = { neutral: color.fg, bad: color.interrupted, good: color.listening } as const
 
-export const CaptionBand: React.FC<{ cues: Cue[] }> = ({ cues }) => {
+export const CaptionBand: React.FC<{ cues: Cue[]; beatNumber?: number }> = ({
+  cues,
+  beatNumber,
+}) => {
   const frame = useCurrentFrame()
   const t = frame / FPS
 
@@ -59,6 +66,7 @@ export const CaptionBand: React.FC<{ cues: Cue[] }> = ({ cues }) => {
                 marginBottom: 14,
               }}
             >
+              {beatNumber ? `Beat ${beatNumber} · ` : ''}
               {cue.kicker}
             </div>
           ) : null}

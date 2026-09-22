@@ -76,13 +76,27 @@ events: fromJsonl(await (await fetch(staticFile('beat2.jsonl'))).text(), { zeroA
 Nothing else changes. `zeroAtMs` is the moment in the recording where the beat should start;
 it keeps the uptime counter warm instead of showing 0:00 on frame one.
 
-## Known issue, and it is the app's, not the video's
+## The running order is derived, not written down twice
 
-A long caller turn overflows the transcript zone and gets cut mid-glyph, worst when the
-"applied live, no reconnect" banner is on screen and stealing a row. Beat 4's ramble is long
-enough to hit it. The video inherits it because it inherits the stylesheet. Fixing
-`.text { overflow: hidden }` in `src/web/public/index.html` fixes both; re-copy the block into
-`dashboardCss.ts` afterwards.
+`ORDER` in `fixtures/beats.ts` is the sequence: barge-in, keyterms, the rambler, the false
+start. Everything else follows from it. A beat's number is its index, so captions and compare
+cards cannot drift out of sync with the order, and `carryIn(order, i)` computes which switches
+are already on when a beat's call starts, so no beat stores a starting state.
+
+That order is forced rather than chosen. `eagerEot` is refused unless `smartEot` is on, so the
+false start cannot run before the rambler without borrowing the rambler's own reveal. Moving
+the sequence again is one line, and nothing else needs touching.
+
+## Copy is stale and is going to be rewritten
+
+The fixtures still use the old fiction, an electric utility with kilowatt hours and meter
+reads. The demo's account is now **Bramble Hill Pet Lodge**, a dog boarding business, and the
+dog is a pug called Brisket, for continuity with the Vonage talk that follows. Keyterms are
+`Gutentag, Bramble Hill, Brisket`.
+
+`docs/SCRIPT.md` carries a banner saying it is stale, so do not pull caption copy from it yet.
+The beat shapes hold and the words do not. Recut captions once the script lands, not before,
+or you will do it twice.
 
 ## Adding a QR to the outro
 

@@ -121,7 +121,9 @@ get progressively more interesting:
 3. **Side effects you cannot take back. This is the real bill.** If a speculative turn produces a
    tool call, it dispatches immediately. A caller who false-starts mid-sentence can make your agent
    charge a card, book a slot or send an email, and *then* the turn resumes and the reply is
-   discarded. The side effect is not. Deepgram's own guidance is to set `defer_until_eot: true` on
+   discarded. The side effect is not. **Use the lodge's own version, it is a better picture than a
+   credit card:** the caller pauses halfway through "I want to book Brisket in for grooming on
+   Thursday, actually make it Friday", and the agent has already taken the Thursday slot. Deepgram's own guidance is to set `defer_until_eot: true` on
    anything non-idempotent, and the managed API emits `FunctionCallCancelled` so you can roll back.
    On raw sockets it is entirely your problem.
 

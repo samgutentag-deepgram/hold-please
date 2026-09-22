@@ -17,7 +17,10 @@ import { byTime, callStartedAgo, updates } from './helpers.ts'
 
 export interface BeatSpec {
   id: string
-  n: number
+  /**
+   * No beat number lives here. A beat's number is its position in the running order, and
+   * hardcoding it is how the swap left captions claiming to be beat 3 while playing fourth.
+   */
   name: string
   /** The one line that says what real callers do. Shown on the beat's title card. */
   headline: string
@@ -55,7 +58,6 @@ const TOU_ANSWER =
 
 export const beat1: BeatSpec = {
   id: 'barge-in',
-  n: 1,
   name: 'Barge-in',
   headline: 'They talk over it.',
   enables: 'bargeIn',
@@ -142,11 +144,11 @@ export const beat1: BeatSpec = {
     { at: 14.2, label: 'FIXED', tone: 'good' },
   ],
   cues: [
-    { at: 0, kicker: 'Beat 1 · broken', tone: 'bad', text: 'No interrupt handling. This is the default, and it is how most voice agents actually ship.' },
+    { at: 0, kicker: 'broken', tone: 'bad', text: 'No interrupt handling. This is the default, and it is how most voice agents actually ship.' },
     { at: 5.2, text: 'The caller cuts in. Watch the state pill: it never leaves SPEAKING.' },
     { at: 9.0, text: 'The agent finishes its paragraph over the caller, then answers the question they already withdrew.' },
-    { at: 13, kicker: 'The fix', tone: 'good', text: 'Switch barge-in on. No code edit, no hang-up, no reconnect.' },
-    { at: 17.4, kicker: 'Beat 1 · fixed', tone: 'good', text: 'Same agent, same call, same sentence.' },
+    { at: 13, kicker: 'the fix', tone: 'good', text: 'Switch barge-in on. No code edit, no hang-up, no reconnect.' },
+    { at: 17.4, kicker: 'fixed', tone: 'good', text: 'Same agent, same call, same sentence.' },
     { at: 22.2, text: 'Audio cuts on the first syllable, and text_spoken says exactly what the caller heard.' },
     { at: 26.2, text: 'So it resumes from there instead of from the top, and answers the question that survived.' },
   ],
@@ -174,7 +176,6 @@ export const beat1: BeatSpec = {
 
 export const beat2: BeatSpec = {
   id: 'keyterms',
-  n: 2,
   name: 'The name',
   headline: 'They say a word it has never heard.',
   enables: 'keyterms',
@@ -240,11 +241,11 @@ export const beat2: BeatSpec = {
     { at: 10.2, label: 'KEYTERMS ON', tone: 'good' },
   ],
   cues: [
-    { at: 0, kicker: 'Beat 2 · broken', tone: 'bad', text: 'The agent wants a last name. The last name is Gutentag.' },
+    { at: 0, kicker: 'broken', tone: 'bad', text: 'The agent wants a last name. The last name is Gutentag.' },
     { at: 1.7, text: 'Every speech model has heard the German greeting ten thousand times, and this surname never.' },
     { at: 5.6, text: 'The caller says their own name correctly and gets locked out of their own account.' },
-    { at: 9, kicker: 'The fix', tone: 'good', text: 'One Configure message, sent down the socket that is already open.' },
-    { at: 13.4, kicker: 'Beat 2 · fixed', tone: 'good', text: 'Watch the uptime counter. It does not reset, because nothing reconnected.' },
+    { at: 9, kicker: 'the fix', tone: 'good', text: 'One Configure message, sent down the socket that is already open.' },
+    { at: 13.4, kicker: 'fixed', tone: 'good', text: 'Watch the uptime counter. It does not reset, because nothing reconnected.' },
     { at: 15.2, text: 'One word now. Keyterm prompting is for vocabulary, not spelling: the model did not learn to spell it, it learned the word exists.' },
     { at: 19, text: 'Account opens. Mid-call, on the same socket, with the caller still on the line.' },
   ],
@@ -269,7 +270,6 @@ const BILL_A =
 
 export const beat3: BeatSpec = {
   id: 'eager-eot',
-  n: 3,
   name: 'The false start',
   headline: 'They pause in the middle of a sentence.',
   // Eager is already on when the call starts: this beat's on-camera change is the dial, not
@@ -341,11 +341,11 @@ export const beat3: BeatSpec = {
     { at: 10.2, label: 'EAGER 0.80', tone: 'neutral' },
   ],
   cues: [
-    { at: 0, kicker: 'Beat 3 · the tradeoff, not a fix', text: 'Nothing is broken here. Eager end-of-turn lets the agent start thinking before the caller finishes.' },
+    { at: 0, kicker: 'the tradeoff, not a fix', text: 'Nothing is broken here. Eager end-of-turn lets the agent start thinking before the caller finishes.' },
     { at: 1.9, text: 'The caller pauses mid-sentence. Speculative issued ticks to 1.' },
     { at: 2.7, text: 'They keep talking, so that call is cancelled. You already paid for it.' },
     { at: 4.2, text: 'Two calls to the model, one answer. Bought about 200 ms, cost an extra inference nobody heard.' },
-    { at: 9, kicker: 'The dial', text: 'This is not a repair. It is a product decision with a slider attached.' },
+    { at: 9, kicker: 'the dial', text: 'This is not a repair. It is a product decision with a slider attached.' },
     { at: 13.4, kicker: 'Eager at 0.80', text: 'Same sentence, same pause. Nothing speculative fires.' },
     { at: 17.4, text: 'Zero waste. A beat slower — first token 287 ms instead of 96. Pick one.' },
   ],
@@ -377,7 +377,6 @@ const RAMBLE_FULL =
 
 export const beat4: BeatSpec = {
   id: 'rambler',
-  n: 4,
   name: 'The rambler',
   headline: 'They do not stop talking.',
   enables: 'smartEot',
@@ -466,16 +465,16 @@ export const beat4: BeatSpec = {
     { at: 12.7, label: 'FIXED', tone: 'good' },
   ],
   cues: [
-    { at: 0, kicker: 'Beat 4 · broken', tone: 'bad', text: 'A caller with no clean stopping point, and an agent ending turns on a 1200 ms silence timer.' },
+    { at: 0, kicker: 'broken', tone: 'bad', text: 'A caller with no clean stopping point, and an agent ending turns on a 1200 ms silence timer.' },
     { at: 3.3, text: 'It heard a breath and called it a sentence. First interruption, three seconds in.' },
     { at: 8.3, text: 'Second one. It is now answering half a question it was never asked.' },
-    { at: 11.5, kicker: 'The fix', tone: 'good', text: 'Switch smart EOT on and let the model decide. Same call, same socket.' },
-    { at: 16, kicker: 'Beat 4 · fixed', tone: 'good', text: 'Watch the confidence bar instead of the transcript.' },
+    { at: 11.5, kicker: 'the fix', tone: 'good', text: 'Switch smart EOT on and let the model decide. Same call, same socket.' },
+    { at: 16, kicker: 'fixed', tone: 'good', text: 'Watch the confidence bar instead of the transcript.' },
     { at: 19, text: 'It stays under the line through every pause. It is reading the sentence, not timing the silence.' },
     { at: 22.7, text: 'Crossed at 0.78 and fired 276 ms after the caller actually trailed off. 23 samples, frozen so the room can read it.' },
     { at: 27.2, text: 'Where that line sits is a product decision too. Patient agent, slower. Eager agent, interrupts. This dial.' },
   ],
-  change: { kind: 'switch', label: 'smart EOT', keyCap: '4', from: false, to: true },
+  change: { kind: 'switch', label: 'smart EOT', keyCap: '3', from: false, to: true },
   proof: ['applied live', 'reconnects 0', 'socket never closed'],
   compare: {
     said: '…I’m trying to figure out whether I should switch plans, because someone told me about the time-of-use thing, but I work from home so I’m not sure that…',
@@ -489,24 +488,23 @@ export const beat4: BeatSpec = {
 // Ordering
 // ---------------------------------------------------------------------------------------
 
-/** The order as `docs/RUN-OF-SHOW.md` currently writes it. */
-export const ORDER_AS_WRITTEN: BeatSpec[] = [beat1, beat2, beat3, beat4]
-
 /**
- * Beats 3 and 4 swapped, so each beat turns on exactly one new switch and the keys get
- * pressed 1, 2, 4, 3 — or 1, 2, 3, 4 if the run of show renumbers them. `eagerEot` is
- * refused unless `smartEot` is already on, so the rambler has to come first for the false
- * start to be possible at all. Rendered as its own composition, not adopted: the order is
- * Sam's call, and `master` still renders the sequence as written so the two can be compared.
+ * The running order, settled 2026-09-22 after watching both cuts.
+ *
+ * Barge-in, keyterms, the rambler, the false start. Each beat turns on exactly one new
+ * switch and the keys get pressed 1, 2, 3, 4 straight down the rail. The order is forced
+ * rather than chosen: `eagerEot` is refused unless `smartEot` is already on, so the false
+ * start cannot precede the rambler without borrowing the rambler's own reveal. Ending on
+ * the false start also ends the talk on the tool call that cannot be un-fired.
  */
-export const ORDER_SWAPPED: BeatSpec[] = [beat1, beat2, beat4, beat3]
+export const ORDER: BeatSpec[] = [beat1, beat2, beat4, beat3]
 
 /**
  * What is already switched on when a beat's call begins, derived from the beats before it.
  *
- * Nothing carries hardcoded initial toggles any more, because the whole point of the new
- * contract is that switches only ever go on, and that means a beat's starting state is a
- * function of the running order rather than a property of the beat.
+ * No beat carries hardcoded initial toggles, because the whole point of the contract is that
+ * switches only ever go on, and that makes a beat's starting state a function of the running
+ * order rather than a property of the beat.
  */
 export function carryIn(order: BeatSpec[], index: number): Partial<Toggles> {
   const on: Partial<Toggles> = {}
@@ -518,16 +516,4 @@ export function carryIn(order: BeatSpec[], index: number): Partial<Toggles> {
   return on
 }
 
-/**
- * True when a beat's own switch is already on before its toggle moment, which means the
- * moment shows a switch that does not move. In the as-written order the rambler hits this,
- * because the false start before it had to enable smart EOT to run at all. That dead switch
- * is the argument for swapping, so it renders rather than being papered over.
- */
-export function momentIsDead(order: BeatSpec[], index: number): boolean {
-  const spec = order[index]
-  if (spec.onAtStart) return false
-  return carryIn(order, index)[spec.enables] === true
-}
-
-export const BEATS = ORDER_AS_WRITTEN
+export const BEATS = ORDER

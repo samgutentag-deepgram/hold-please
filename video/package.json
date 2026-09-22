@@ -7,7 +7,7 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render:master": "remotion render src/index.ts master out/hold-please-loop.mp4",
-    "render:beats": "remotion render src/index.ts beat-barge-in out/beat-1-barge-in.mp4 && remotion render src/index.ts beat-keyterms out/beat-2-keyterms.mp4 && remotion render src/index.ts beat-eager-eot out/beat-3-eager-eot.mp4 && remotion render src/index.ts beat-rambler out/beat-4-rambler.mp4",
+    "render:beats": "remotion render src/index.ts beat-barge-in out/beat-1-barge-in.mp4 && remotion render src/index.ts beat-keyterms out/beat-2-keyterms.mp4 && remotion render src/index.ts beat-rambler out/beat-3-rambler.mp4 && remotion render src/index.ts beat-eager-eot out/beat-4-eager-eot.mp4",
     "still": "remotion still src/index.ts master out/frame.png",
     "typecheck": "tsc --noEmit"
   },

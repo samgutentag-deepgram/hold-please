@@ -7,13 +7,15 @@ import type { ToggleName } from '../types.ts'
 // classes, same ids, same stylesheet. The only thing missing is the websocket, because here
 // the events arrive from a fixture or a recording instead of a live call.
 
-// hold-please 90a03b7. All five default off, all five mean "on = the fix", so nothing here
-// carries the old red `danger` styling: no switch breaks anything any more.
+// hold-please 09d38e0. All five default off, all five mean "on = the fix", so nothing here
+// carries the old red `danger` styling: no switch breaks anything any more. Keys read 1 to 5
+// straight down the rail and the beats press them in that order, so smart EOT sits at 3,
+// immediately left of the eager switch it has to enable.
 const SWITCHES: { name: ToggleName; label: string; key: string }[] = [
   { name: 'bargeIn', label: 'barge-in', key: '1' },
   { name: 'keyterms', label: 'keyterms', key: '2' },
-  { name: 'eagerEot', label: 'eager EOT', key: '3' },
-  { name: 'smartEot', label: 'smart EOT', key: '4' },
+  { name: 'smartEot', label: 'smart EOT', key: '3' },
+  { name: 'eagerEot', label: 'eager EOT', key: '4' },
   { name: 'multilingual', label: 'multilingual', key: '5' },
 ]
 

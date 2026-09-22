@@ -19,7 +19,11 @@ import { BeatTitle } from './TitleCard.tsx'
 
 const DASH_H = HEIGHT - CAPTION_H
 
-const Run: React.FC<{ spec: BeatSpec; carried: Partial<Toggles> }> = ({ spec, carried }) => {
+const Run: React.FC<{ spec: BeatSpec; n: number; carried: Partial<Toggles> }> = ({
+  spec,
+  n,
+  carried,
+}) => {
   const frame = useCurrentFrame()
   const tMs = (frame / FPS) * 1000
   const state = replay(spec.events, tMs, carried)
@@ -46,27 +50,33 @@ const Run: React.FC<{ spec: BeatSpec; carried: Partial<Toggles> }> = ({ spec, ca
           <ToggleMoment change={spec.change} proof={spec.proof} />
         </Sequence>
       ) : null}
-      <CaptionBand cues={spec.cues} />
+      <CaptionBand cues={spec.cues} beatNumber={n} />
     </AbsoluteFill>
   )
 }
 
-export const Beat: React.FC<{ spec: BeatSpec; carried?: Partial<Toggles> }> = ({
+export const Beat: React.FC<{
+  spec: BeatSpec
+  /** Position in the running order, 1-based. Never stored on the spec. */
+  n: number
+  carried?: Partial<Toggles>
+}> = ({
   spec,
+  n,
   // A beat rendered on its own for the stage fallback still needs its preconditions on, or
   // beat 3's rail shows an eager switch the app would refuse to let anyone press.
   carried = carryIn([spec], 0),
 }) => (
   <AbsoluteFill style={{ background: color.bg }}>
     <Sequence durationInFrames={sec(spec.titleS)}>
-      <BeatTitle n={spec.n} name={spec.name} headline={spec.headline} />
+      <BeatTitle n={n} name={spec.name} headline={spec.headline} />
     </Sequence>
     <Sequence from={sec(spec.titleS)} durationInFrames={sec(spec.runS)}>
-      <Run spec={spec} carried={carried} />
+      <Run spec={spec} n={n} carried={carried} />
     </Sequence>
     <Sequence from={sec(spec.titleS + spec.runS)} durationInFrames={sec(spec.compareS)}>
       <CompareCard
-        title={`Beat ${spec.n} — ${spec.name}`}
+        title={`Beat ${n} — ${spec.name}`}
         said={spec.compare.said}
         before={spec.compare.before}
         after={spec.compare.after}
