@@ -103,6 +103,17 @@ export class ToggleStore {
   }
 
   set(name: string, value: unknown): ToggleResult {
+    // Eager rides on smart. Rather than refuse the switch the presenter just pressed, bring the
+    // dependency along: eager on turns smart on first, smart off turns eager off first. Each
+    // step is its own toggle.changed, so the dashboard and the socket see both.
+    if (name === 'eagerEot' && value === true && !this.current.smartEot) {
+      const dep = this.set('smartEot', true)
+      if (!dep.ok) return dep
+    }
+    if (name === 'smartEot' && value === false && this.current.eagerEot) {
+      const dep = this.set('eagerEot', false)
+      if (!dep.ok) return dep
+    }
     const result = validateToggle(this.current, name, value)
     if (!result.ok) return result
     const previous = this.current

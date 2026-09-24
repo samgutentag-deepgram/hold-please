@@ -77,6 +77,24 @@ test('eager cannot be armed before smart end of turn, in either order', () => {
   assert.equal(validateToggle(stillOn, 'smartEot', false).ok, false)
 })
 
+test('the store brings smart end of turn along with eager, and takes eager away with smart', () => {
+  const bus = createBus()
+  const store = new ToggleStore(bus)
+  const changed: string[] = []
+  store.onChange((_next, name) => changed.push(name))
+
+  assert.equal(store.set('eagerEot', true).ok, true)
+  assert.equal(store.get().smartEot, true)
+  assert.equal(store.get().eagerEot, true)
+  assert.deepEqual(changed, ['smartEot', 'eagerEot'], 'smart first, so the eager card is the one left showing')
+
+  changed.length = 0
+  assert.equal(store.set('smartEot', false).ok, true)
+  assert.equal(store.get().eagerEot, false)
+  assert.equal(store.get().smartEot, false)
+  assert.deepEqual(changed, ['eagerEot', 'smartEot'])
+})
+
 test('keyterms come from the env when set, with a sensible default', () => {
   assert.deepEqual(keytermsFromEnv('A7, 4K ,, Q'), ['A7', '4K', 'Q'])
   assert.ok(keytermsFromEnv(undefined).includes('Gutentag'))
