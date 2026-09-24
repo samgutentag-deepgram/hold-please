@@ -244,6 +244,7 @@ export class FluxStt {
       }
       debugLog('flux stt Configure sent', { message })
       this.socket!.send(JSON.stringify(message))
+      this.bus.emit({ kind: 'stt.configureSent', message })
     })
   }
 

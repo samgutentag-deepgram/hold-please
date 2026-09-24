@@ -6,6 +6,7 @@ import { LocalAudioLeg } from './audio/local.ts'
 import { resolveMic, resolveSpeaker } from './audio/devices.ts'
 import { createVonageWebhooks, VONAGE_WS_PATH, VonageAudioLeg } from './telephony/vonage.ts'
 import { DEFAULT_TOGGLES, TOGGLE_LIMITS, ToggleStore } from './toggles/state.ts'
+import { codeCards } from './toggles/cards.ts'
 
 // Degrade, never crash. An unhandled error on a projector is worse than a degraded state, so
 // both handlers log loudly and keep the process alive.
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
     host: config.host,
     bus,
     handlers: [createVonageWebhooks({ publicUrl: () => config.publicUrl, bus })],
-    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms }),
+    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms, cards: codeCards(config.demo.keyterms) }),
     onCommand: (command) => {
       if (command.type === 'toggle') {
         const result = toggles.set(String(command['name']), command['value'])

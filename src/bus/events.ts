@@ -7,6 +7,8 @@ import { now } from './clock.ts'
 //   agent.reply      what the agent said, once per turn, so the transcript zone can show both sides
 //   socket.degraded  gained 'llm' as a `which`, because a slow or failed LLM degrades the same way
 //   socket.recovered the banner needs a reason to go away; a reconnect is not a config.applied
+//   stt.configureSent the exact Configure frame put on the open socket, so the code card can show
+//                    the wire next to the diff and the room sees the change was not a restart
 export type AgentState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'interrupted'
 
 export type DemoEvent =
@@ -30,6 +32,7 @@ export type DemoEvent =
   | { t: number; kind: 'socket.recovered'; which: 'stt' | 'tts'; attempts: number }
   | { t: number; kind: 'toggle.changed'; name: string; value: unknown }
   | { t: number; kind: 'config.applied'; reconnected: boolean; fields: string[] }
+  | { t: number; kind: 'stt.configureSent'; message: Record<string, unknown> }
 
 export type DemoEventKind = DemoEvent['kind']
 

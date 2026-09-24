@@ -61,7 +61,44 @@
   .sl output { font: 700 15px/1 ui-monospace, Menlo, monospace; color: var(--fg); min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
   #rejected { color: var(--interrupted); font-weight: 700; font-size: 14px; }
   #applied { color: var(--listening); font-weight: 700; font-size: 14px; }
-  main { display: grid; grid-template-rows: 1fr 1fr; gap: 20px; min-height: 0; }
+  main { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: minmax(0, 1fr); gap: 20px 32px; min-height: 0; }
+
+  /* The code card. A switch turning on pops the change up beside the transcript as a diff, so the
+     room sees code change without anyone editing a file and restarting the process mid-call.
+     Content comes from src/toggles/cards.ts via the snapshot. C recalls or hides it, Esc hides. */
+  /* The card takes the right half from the transcript's top edge to the bottom of the screen,
+     over the confidence bar and stats, because height is what decides how large the code can be.
+     Everything it covers moves left rather than hiding: --card-w is reserved on each row. */
+  body { --card-w: 49vw; --card-top: 180px; }
+  body.carded main { grid-template-columns: minmax(0, 1fr); margin-right: calc(var(--card-w) + 28px); }
+  body.carded .bar-wrap, body.carded footer { margin-right: calc(var(--card-w) + 28px); }
+  #card { display: none; position: fixed; top: var(--card-top); right: 40px; bottom: 20px; width: var(--card-w); z-index: 5; overflow: hidden;
+    background: #11161c; border: 2px solid var(--line); border-left: 6px solid var(--listening); border-radius: 14px;
+    padding: 18px 24px; flex-direction: column; gap: 10px; }
+  body.carded #card { display: flex; animation: cardin 260ms ease-out; }
+  @keyframes cardin { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+  .card-head { display: flex; align-items: center; gap: 16px; }
+  .card-close { margin-left: auto; font: 700 18px/1 system-ui, sans-serif; color: var(--fg); background: #2a3038; border: 2px solid var(--line);
+    border-radius: 10px; padding: 10px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+  .card-close:hover { border-color: var(--fg); }
+  .card-close kbd { font-size: 12px; }
+  .card-title { font: 800 30px/1.1 system-ui, sans-serif; letter-spacing: -0.01em; }
+  .card-on { font: 800 16px/1 system-ui, sans-serif; letter-spacing: 0.1em; color: #000; background: var(--listening); padding: 7px 12px; border-radius: 8px; }
+  .card-gist { margin: 0; font: 600 21px/1.3 system-ui, sans-serif; color: var(--dim); }
+  /* Font size is set by fitCard() so the longest line fills the width and every line fits.
+     The size here is only the starting guess before the first measurement. */
+  .card-code { margin: 0; flex: 1 1 auto; min-height: 0; font: 600 28px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; overflow: hidden; }
+  .card-code > div { width: max-content; min-width: 100%; }
+  .card-code div { padding: 0 10px; border-radius: 4px; }
+  .card-code .add { background: rgba(63, 185, 80, 0.18); color: #aff5b4; }
+  .card-code .del { background: rgba(248, 81, 73, 0.16); color: #ffa198; text-decoration: line-through; text-decoration-thickness: 2px; }
+  .card-code .ctx { color: var(--fg); opacity: 0.8; }
+  .card-code .op { display: inline-block; width: 1.8ch; font-weight: 800; }
+  .card-wire { flex: none; font: 600 15px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); word-break: break-all; }
+  .card-wire b { display: block; font: 800 18px/1.3 system-ui, sans-serif; color: var(--dim); margin-bottom: 2px; word-break: normal; }
+  .card-wire.ok b { color: var(--listening); }
+  .card-wire.bad b { color: var(--interrupted); }
+  .card-ref { flex: none; font: 600 14px/1 ui-monospace, Menlo, monospace; color: var(--dim); }
   .turn { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-height: 0; border-top: 2px solid var(--line); padding-top: 12px; }
   .who { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
   .text { font-size: clamp(34px, 4.2vw, 64px); line-height: 1.15; font-weight: 700; overflow: hidden; text-wrap: balance; }
@@ -76,7 +113,6 @@
      flex-end). Those bottom-align a short turn too, and the page should top-align a short turn
      and pin only when it overflows. Convenience is not worth that. */
   .text { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
-  .sw.pending { opacity: 0.45; }
 
   .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 12px 16px; }
   /* Row 2 is the frozen trace of the turn that just ended. Hidden until there is one to show.
@@ -143,6 +179,13 @@
       <div class="who">Agent</div>
       <div id="agent" class="text empty"></div>
     </section>
+    <aside id="card" aria-live="polite">
+      <div class="card-head"><span class="card-title" id="card-title"></span><span class="card-on">ON</span><button type="button" class="card-close" id="card-close" aria-label="Close code card">✕ Close <kbd>C</kbd></button></div>
+      <p class="card-gist" id="card-gist"></p>
+      <pre class="card-code" id="card-code"></pre>
+      <div class="card-wire" id="card-wire"></div>
+      <div class="card-ref" id="card-ref"></div>
+    </aside>
   </main>
 
   <div class="bar-wrap">
@@ -185,6 +228,8 @@
 
   let ws = null
   let toggles = null
+  let cards = {}
+  let replaying = false
   const specTurns = new Set()
   let specUsed = 0
   const tgSwitches = [...document.querySelectorAll('.sw input[data-toggle]')]
@@ -199,8 +244,6 @@
     el.barThr.style.left = (toggles.eotThreshold * 100) + '%'
     for (const sw of tgSwitches) {
       sw.checked = !!toggles[sw.dataset.toggle]
-      // Speculation is promoted at EndOfTurn, so eager is meaningless until Flux owns the turn.
-      if (sw.dataset.toggle === 'eagerEot') sw.closest('.sw').classList.toggle('pending', !toggles.smartEot)
     }
     for (const sl of tgSliders) {
       const name = sl.dataset.toggle
@@ -227,6 +270,8 @@
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.target.type === 'range' || e.metaKey || e.ctrlKey || e.altKey) return
     if (e.key === 'r' || e.key === 'R') { replayTrace(); return }
+    if (e.key === 'c' || e.key === 'C') { if (document.body.classList.contains('carded')) hideCard(); else if (lastCard) showCard(lastCard); return }
+    if (e.key === 'Escape') { hideCard(); return }
     const i = ['1', '2', '3', '4', '5'].indexOf(e.key)
     if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
@@ -307,6 +352,97 @@
     el.caller.classList.remove('empty')
   }
 
+  // ---- Code cards -------------------------------------------------------------------------
+
+  const card = { title: $('card-title'), gist: $('card-gist'), code: $('card-code'), wire: $('card-wire'), ref: $('card-ref') }
+  $('card-close').addEventListener('click', (e) => { hideCard(); e.currentTarget.blur() })
+
+  // Zoom the code to the card: the largest size where the longest line still fits the width and
+  // every line fits the height. Binary search, because line length and count vary per card.
+  function fitCard() {
+    if (!document.body.classList.contains('carded')) return
+    document.body.style.setProperty('--card-top', Math.round(document.querySelector('main').getBoundingClientRect().top) + 'px')
+    const box = card.code
+    let lo = 12, hi = 72
+    for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2
+      box.style.fontSize = mid + 'px'
+      const fits = box.scrollWidth <= box.clientWidth + 1 && box.scrollHeight <= box.clientHeight + 1
+      if (fits) lo = mid; else hi = mid
+    }
+    box.style.fontSize = Math.floor(lo) + 'px'
+  }
+  window.addEventListener('resize', fitCard)
+  let lastCard = null   // what C brings back
+  let cardFor = null    // which toggle the open card belongs to
+
+  const THRESHOLD_WIRE = { eotThreshold: 'eot_threshold', eagerEotThreshold: 'eager_eot_threshold', eotTimeoutMs: 'eot_timeout_ms' }
+  const fmt = (name, v) => name === 'eotTimeoutMs' ? String(v) : Number(v).toFixed(2)
+
+  // Beat 4 is a dial, so its card is built from the values the presenter just moved between.
+  function thresholdCard(name, before, after) {
+    const key = THRESHOLD_WIRE[name]
+    return {
+      title: 'End of turn threshold',
+      gist: name === 'eotTimeoutMs' ? 'How long a silence may run before the turn is forced over.' : 'How sure the model must be that they are done.',
+      lines: [
+        { op: ' ', text: '// the socket has been open all along' },
+        { op: ' ', text: 'stt.send({' },
+        { op: ' ', text: "  type: 'Configure'," },
+        { op: ' ', text: '  thresholds: {' },
+        { op: '-', text: `    ${key}: ${fmt(name, before)},` },
+        { op: '+', text: `    ${key}: ${fmt(name, after)},` },
+        { op: ' ', text: '  },' },
+        { op: ' ', text: '})' },
+        { op: ' ', text: '' },
+        { op: ' ', text: "// Flux answers 'ConfigureSuccess'." },
+        { op: ' ', text: '// Same call. No reconnect.' },
+      ],
+      ref: { file: 'src/stt/flux.ts', find: 'configure(' },
+    }
+  }
+
+  function showCard(c, forToggle) {
+    lastCard = c
+    cardFor = forToggle ?? cardFor
+    card.title.textContent = c.title
+    card.gist.textContent = c.gist
+    card.code.replaceChildren(...c.lines.map((line) => {
+      const row = document.createElement('div')
+      row.className = line.op === '+' ? 'add' : line.op === '-' ? 'del' : 'ctx'
+      const op = document.createElement('span'); op.className = 'op'; op.textContent = line.op === ' ' ? '' : line.op
+      row.append(op, document.createTextNode(line.text || '\u00a0'))
+      return row
+    }))
+    card.ref.textContent = c.ref ? c.ref.file : ''
+    setWire(callStartedAt === null ? 'no call up, applies when one connects' : 'waiting for the socket', '', '')
+    document.body.classList.add('carded')
+    fitCard()
+    pinTranscripts()
+  }
+
+  function hideCard() {
+    document.body.classList.remove('carded')
+    cardFor = null
+    pinTranscripts()
+  }
+
+  function setWire(label, detail, tone) {
+    card.wire.className = 'card-wire' + (tone ? ' ' + tone : '')
+    const b = document.createElement('b'); b.textContent = label
+    card.wire.replaceChildren(b, document.createTextNode(detail))
+  }
+
+  function onToggleCard(name, before, after) {
+    if (replaying) return
+    if (typeof after === 'boolean') {
+      if (after && cards[name]) showCard(cards[name], name)
+      else if (!after && cardFor === name) hideCard()
+    } else if (name in THRESHOLD_WIRE && before !== after) {
+      showCard(thresholdCard(name, before, after), name)
+    }
+  }
+
   function apply(e) {
     lastEventT = e.t
     switch (e.kind) {
@@ -347,8 +483,10 @@
         el.applied.textContent = (e.reconnected ? 'RECONNECTED: ' : 'applied live, no reconnect: ') + e.fields.join(', ')
         el.applied.style.color = e.reconnected ? 'var(--interrupted)' : 'var(--listening)'
         clearTimeout(el.applied._t); el.applied._t = setTimeout(() => { el.applied.textContent = '' }, 6000)
+        if (!replaying) setWire(e.reconnected ? '✗ reconnected to change the model' : `✓ applied, no reconnect. Call up ${el.uptime.textContent}`, '', e.reconnected ? 'bad' : 'ok')
         break
-      case 'toggle.changed': if (toggles) { toggles[e.name] = e.value; renderToggles() } break
+      case 'toggle.changed': if (toggles) { const before = toggles[e.name]; toggles[e.name] = e.value; renderToggles(); onToggleCard(e.name, before, e.value) } break
+      case 'stt.configureSent': if (!replaying) setWire('→ sent on the open socket', JSON.stringify(e.message).slice(0, 160), ''); break
       case 'llm.speculativeStart': specTurns.add(e.turnId); el.spec.textContent = `${specTurns.size} / ${specUsed}`; break
       case 'llm.firstToken': if (specTurns.has(e.turnId)) { specUsed += 1; el.spec.textContent = `${specTurns.size} / ${specUsed}` } ms(el.ttft, e.ttftMs); break
     }
@@ -386,8 +524,10 @@
       let frame; try { frame = JSON.parse(msg.data) } catch { return }
       if (frame.type === 'replay') {
         specTurns.clear(); specUsed = 0
+        cards = (frame.snapshot && frame.snapshot.cards) || {}
+        replaying = true
         if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
-        for (const ev of frame.events) apply(ev)
+        try { for (const ev of frame.events) apply(ev) } finally { replaying = false }
         if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
       }
       else if (frame.type === 'event') apply(frame.event)
