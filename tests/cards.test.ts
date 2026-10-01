@@ -30,6 +30,17 @@ test('every card fits the 15 foot budget', () => {
   }
 })
 
+test('every card says when you want it on and when off, in one short line each', () => {
+  for (const [name, card] of Object.entries(cards)) {
+    for (const side of ['on', 'off'] as const) {
+      const text = card.when[side]
+      assert.ok(text.trim().length > 0, `${name}: empty when.${side}`)
+      assert.ok(text.length <= CARD_LIMITS.whenChars, `${name}: when.${side} is ${text.length} chars`)
+      assert.ok(!text.includes('\u2014'), `${name}: when.${side} has an em dash`)
+    }
+  }
+})
+
 test('the keyterms card shows the keyterms the socket is actually sent', () => {
   const text = codeCards(['Otto', 'Gutentag']).keyterms.lines.map((l) => l.text).join('\n')
   assert.match(text, /'Otto'/)
