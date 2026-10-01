@@ -18,11 +18,14 @@
   body {
     background: var(--bg); color: var(--fg);
     font: 500 24px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-    display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 18px;
-    padding: 24px 40px 20px; overflow: hidden;
+    display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 12px;
+    padding: 14px 32px 12px; overflow: hidden;
   }
+  /* The chrome rows are drawn in px for a 1080p viewport. --ui (set from the viewport height in
+     the script) scales them on a 4K panel running at 100%, where they would otherwise be half size. */
+  header, #toggles, .bar-wrap, footer, .who, .card-head, .card-gist, .card-wire, .card-ref { zoom: var(--ui, 1); }
   header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-  h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; color: var(--dim); font-weight: 600; }
+  h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; color: var(--dim); font-weight: 600; }
   .right { display: flex; align-items: center; gap: 18px; }
   /* Language readout: per turn, dominant first, from TurnInfo.languages on flux-general-multi.
      Flux does not report a language per word, so this is the honest granularity. */
@@ -32,20 +35,20 @@
   #lang.changed span:first-child { animation: langflash 1.2s ease-out; }
   @keyframes langflash { 0% { background: var(--thinking); color: #000; } 100% { background: transparent; } }
   #state {
-    font: 800 30px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
-    padding: 12px 28px; border-radius: 999px; color: #000; background: var(--idle); min-width: 240px; text-align: center;
+    font: 800 28px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 10px 26px; border-radius: 999px; color: #000; background: var(--idle); min-width: 230px; text-align: center;
   }
   #state[data-state="listening"] { background: var(--listening); }
   #state[data-state="thinking"] { background: var(--thinking); }
   #state[data-state="speaking"] { background: var(--speaking); }
   #state[data-state="interrupted"] { background: var(--interrupted); }
   /* Local mode only. The call starts when the presenter says so, not when the process does. */
-  #callbtn { font: 800 22px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 22px; border-radius: 999px; border: 3px solid var(--listening); background: transparent; color: var(--fg); cursor: pointer; }
+  #callbtn { font: 800 20px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 20px; border-radius: 999px; border: 3px solid var(--listening); background: transparent; color: var(--fg); cursor: pointer; }
   #callbtn[data-in-call="true"] { border-color: var(--interrupted); }
   #callbtn:disabled { opacity: 0.5; cursor: wait; }
   #callbtn kbd { margin-left: 8px; }
   /* Presenter mute: which audience he is talking to, readable from the back row. */
-  #micbtn { font: 800 22px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 22px; border-radius: 999px; border: 3px solid var(--listening); background: var(--listening); color: #000; cursor: pointer; }
+  #micbtn { font: 800 20px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 20px; border-radius: 999px; border: 3px solid var(--listening); background: var(--listening); color: #000; cursor: pointer; }
   #micbtn[data-muted="true"] { background: transparent; color: var(--dim); border-color: var(--idle); }
   #micbtn kbd { margin-left: 8px; color: inherit; border-color: currentColor; }
   #conn { font-size: 16px; color: var(--dim); }
@@ -70,7 +73,8 @@
   .sl output { font: 700 15px/1 ui-monospace, Menlo, monospace; color: var(--fg); min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
   #rejected { color: var(--interrupted); font-weight: 700; font-size: 14px; }
   #applied { color: var(--listening); font-weight: 700; font-size: 14px; }
-  main { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: minmax(0, 1fr); gap: 20px 32px; min-height: 0; }
+  /* Rows are rewritten by fitTranscript() so each zone gets the height its turn needs. */
+  main { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); gap: 12px 32px; min-height: 0; }
 
   /* The code card. A switch turning on pops the change up beside the transcript as a diff, so the
      room sees code change without anyone editing a file and restarting the process mid-call.
@@ -80,7 +84,8 @@
      Everything it covers moves left rather than hiding: --card-w is reserved on each row. */
   body { --card-w: 49vw; --card-top: 180px; }
   body.carded main { grid-template-columns: minmax(0, 1fr); margin-right: calc(var(--card-w) + 28px); }
-  body.carded .bar-wrap, body.carded footer { margin-right: calc(var(--card-w) + 28px); }
+  /* These rows are zoomed by --ui, and zoom scales their margins too. */
+  body.carded .bar-wrap, body.carded footer { margin-right: calc((var(--card-w) + 28px) / var(--ui, 1)); }
   #card { display: none; position: fixed; top: var(--card-top); right: 40px; bottom: 20px; width: var(--card-w); z-index: 5; overflow: hidden;
     background: #11161c; border: 2px solid var(--line); border-left: 6px solid var(--listening); border-radius: 14px;
     padding: 18px 24px; flex-direction: column; gap: 10px; }
@@ -108,29 +113,31 @@
   .card-wire.ok b { color: var(--listening); }
   .card-wire.bad b { color: var(--interrupted); }
   .card-ref { flex: none; font: 600 14px/1 ui-monospace, Menlo, monospace; color: var(--dim); }
-  .turn { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-height: 0; border-top: 2px solid var(--line); padding-top: 12px; }
-  .who { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
-  .text { font-size: clamp(34px, 4.2vw, 64px); line-height: 1.15; font-weight: 700; overflow: hidden; text-wrap: balance; }
+  .turn { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; min-height: 0; border-top: 3px solid var(--line); padding-top: 8px; }
+  .who { font: 800 20px/1 system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: #c9d1d9; }
+  .turn:nth-child(2) .who { color: var(--agent); }
+  /* --tfs is set by fitTranscript(): the largest size at which both turns fit with every word
+     visible. align-self: start lets the script read each turn's natural height off offsetHeight. */
+  .text { font-size: var(--tfs, 48px); line-height: 1.14; font-weight: 700; text-wrap: pretty;
+    align-self: start; max-height: 100%; min-height: 0; overflow: hidden; padding-bottom: 0.08em; }
+  main.measuring .text { max-height: none; }
+  /* Last resort, below the size floor: the tail shows, and the cut-off line above it fades out. */
+  .text.over { -webkit-mask-image: linear-gradient(transparent, #000 1.2em); mask-image: linear-gradient(transparent, #000 1.2em); }
   #caller { color: var(--caller); }
-  #caller.interim { color: var(--dim); font-weight: 500; }
+  /* Same weight as the final text: a weight change at end of turn rewraps the lines and jumps the size. */
+  #caller.interim { color: #a3adb8; }
   #agent { color: var(--agent); }
   #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
   .empty { color: var(--dim); font-weight: 500; }
-  /* A 45 second ramble overflows this zone and used to clip mid-glyph, worse once the
-     "applied live, no reconnect" banner takes a row. Scroll to the tail instead of clipping.
-     Deliberately NOT the CSS-only version (flex-direction: column-reverse, or justify-content:
-     flex-end). Those bottom-align a short turn too, and the page should top-align a short turn
-     and pin only when it overflows. Convenience is not worth that. */
-  .text { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 
-  .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 12px 16px; }
+  .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 8px 16px; }
   /* Row 2 is the frozen trace of the turn that just ended. Hidden until there is one to show.
      Flux reports about 4 times a second against a 260 ms median turn, so a live bar is over
      before a room can read it. The still picture is the thing to point at. */
   .trace-label { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
-  #trace-wrap { grid-column: 2; height: 72px; visibility: hidden; }
+  #trace-wrap { grid-column: 2; height: 52px; visibility: hidden; }
   #trace-wrap.on { visibility: visible; }
-  #trace { width: 100%; height: 72px; display: block; background: var(--line); border-radius: 8px; }
+  #trace { width: 100%; height: 52px; display: block; background: var(--line); border-radius: 8px; }
   #trace .thr  { stroke: var(--thinking); stroke-width: 2; stroke-dasharray: 7 6; }
   #trace .line { fill: none; stroke: var(--listening); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
   #trace .tick { stroke: var(--listening); stroke-width: 4; stroke-linecap: round; }
@@ -139,15 +146,15 @@
   #trace-meta small { display: block; font: 500 13px/1.4 system-ui, sans-serif; color: var(--dim); }
   kbd { font: 700 12px/1 ui-monospace, Menlo, monospace; border: 1px solid var(--dim); border-radius: 4px; padding: 2px 5px; color: var(--dim); }
   .bar-label { font: 700 16px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
-  #bar { height: 28px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
+  #bar { height: 22px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
   #bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #1b998b, #3fb950); transition: width 120ms linear; }
   #bar b { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--thinking); left: 70%; }
   #conf { font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
 
-  footer { display: flex; flex-wrap: wrap; gap: 28px 40px; align-items: baseline; font-variant-numeric: tabular-nums; }
+  footer { display: flex; flex-wrap: wrap; gap: 10px 36px; align-items: baseline; font-variant-numeric: tabular-nums; }
   .stat { display: grid; gap: 2px; }
   .stat .k { font: 700 13px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
-  .stat .v { font: 700 26px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .stat .v { font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
   .stat .v small { font-size: 14px; color: var(--dim); font-weight: 500; }
   #degraded { display: none; background: var(--interrupted); color: #000; font-weight: 800; padding: 10px 16px; border-radius: 10px; }
   #degraded.on { display: block; }
@@ -388,9 +395,9 @@
 
   function setCaller(text, interim) {
     el.caller.textContent = text || (interim ? '…' : '')
-    el.caller.scrollTop = el.caller.scrollHeight
     el.caller.classList.toggle('interim', !!interim)
     el.caller.classList.remove('empty')
+    fitTranscript(!interim)
   }
 
   // ---- Code cards -------------------------------------------------------------------------
@@ -413,7 +420,6 @@
     }
     box.style.fontSize = Math.floor(lo) + 'px'
   }
-  window.addEventListener('resize', fitCard)
   let lastCard = null   // what C brings back
   let cardFor = null    // which toggle the open card belongs to
 
@@ -459,13 +465,13 @@
     setWire(callStartedAt === null ? 'no call up, applies when one connects' : 'waiting for the socket', '', '')
     document.body.classList.add('carded')
     fitCard()
-    pinTranscripts()
+    fitTranscript(true)
   }
 
   function hideCard() {
     document.body.classList.remove('carded')
     cardFor = null
-    pinTranscripts()
+    fitTranscript(true)
   }
 
   function setWire(label, detail, tone) {
@@ -496,7 +502,7 @@
         if (turnStartT !== null) trace.push({ dt: e.t - turnStartT, c: e.eotConfidence })
         if (e.text) setCaller(e.text, true)
         break
-      case 'stt.startOfTurn': el.caller.classList.remove('empty'); turnStartT = e.t; trace = []; break
+      case 'stt.startOfTurn': el.caller.classList.remove('empty'); turnStartT = e.t; trace = []; fitCap = Infinity; break
       case 'stt.endOfTurn':
         setCaller(e.text, false)
         freezeTrace(e)
@@ -509,13 +515,14 @@
         el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
-      case 'call.started': inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
-      case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); el.agent.scrollTop = el.agent.scrollHeight; break
+      case 'call.started': inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; fitTranscript(true); break
+      case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); fitTranscript(true); break
       case 'tts.interrupt':
         el.agent.innerHTML = ''
         el.agent.append(document.createTextNode(e.textSpoken || '(cut before a word was heard)'))
         const cut = document.createElement('span'); cut.className = 'cut'; cut.textContent = '⟵ heard up to here'
         el.agent.append(cut)
+        fitTranscript(true)
         break
       case 'tts.firstByte': ms(el.ttfb, e.ttfbMs); break
       case 'socket.degraded': el.degraded.textContent = `${e.which} degraded: ${e.detail}`.slice(0, 120); el.degraded.classList.add('on'); break
@@ -545,17 +552,56 @@
     el.uptime.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }, 250)
 
-  // Fonts resolve asynchronously, and a scrollTop written before they land is measured against
-  // the wrong line heights and collapses to zero. A live browser repaints and recovers, so this
-  // never shows up on stage. A screenshot does not: capture the page mid-ramble for a slide, or
-  // for the Phase 3 legibility test, and you get the head of the transcript where the room sees
-  // the tail. It looks plausible, which is what makes it dangerous. Found by the video session,
-  // whose renderer captures as soon as the layout settles.
-  function pinTranscripts() {
-    for (const node of [el.caller, el.agent]) node.scrollTop = node.scrollHeight
+  // ---- Transcript fit ---------------------------------------------------------------------
+  // The room has to read the whole exchange at once, so nothing scrolls: both turns share one
+  // font size, the largest at which caller plus agent fit main, and each zone's row is sized to
+  // its own turn. A 45 second ramble takes the room a short agent turn leaves, and vice versa.
+  // While interim words stream in the size may only shrink (fitCap), or the text would pulse a
+  // size up and down per word. Every other change (final text, new reply, resize, card) refits
+  // from the top. Below the floor the room cannot read it anyway, so the floor wins and the
+  // zone shows its tail, the words being spoken now, rather than the head.
+  const mainEl = document.querySelector('main')
+  let fitCap = Infinity
+  function setUiScale() {
+    document.documentElement.style.setProperty('--ui', String(Math.max(0.6, Math.min(2, window.innerHeight / 1080))))
   }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(pinTranscripts)
-  window.addEventListener('resize', pinTranscripts)
+  function fitTranscript(regrow) {
+    if (regrow) fitCap = Infinity
+    const H = mainEl.clientHeight
+    if (!H) return
+    const vh = window.innerHeight
+    const floor = Math.max(18, Math.round(vh * 0.028))
+    const ceil = Math.max(floor, Math.min(fitCap, Math.round(vh * 0.09)))
+    const zones = [el.caller, el.agent]
+    mainEl.classList.add('measuring')
+    const gap = parseFloat(getComputedStyle(mainEl).rowGap) || 0
+    // Label, border and padding above each text: constant across font sizes.
+    const over = zones.map((n) => n.getBoundingClientRect().top - n.parentElement.getBoundingClientRect().top)
+    const need = (f) => {
+      mainEl.style.setProperty('--tfs', f + 'px')
+      return zones.map((n, i) => over[i] + n.offsetHeight)
+    }
+    const fits = (f) => { const [a, b] = need(f); return a + b + gap <= H - 2 }
+    let size = floor
+    if (fits(ceil)) size = ceil
+    else if (fits(floor)) {
+      let lo = floor, hi = ceil
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (fits(mid)) lo = mid; else hi = mid }
+      size = lo
+    }
+    const [a, b] = need(size)
+    mainEl.classList.remove('measuring')
+    fitCap = size
+    mainEl.style.gridTemplateRows = a + b + gap <= H
+      ? `minmax(${a}px, 1fr) minmax(${b}px, 1fr)`
+      : `minmax(0, ${a}fr) minmax(0, ${b}fr)`
+    for (const n of zones) { n.scrollTop = n.scrollHeight; n.classList.toggle('over', n.scrollTop > 0) }
+  }
+  function refit() { setUiScale(); fitCard(); fitTranscript(true) }
+  setUiScale()
+  fitTranscript(true)
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit)
+  window.addEventListener('resize', refit)
 
   let backoff = 500
   function connect() {
