@@ -3,8 +3,8 @@
 **This demo shows the same voice agent break on real callers and get fixed mid-call, without a
 reconnect.**
 
-A phone call comes in on a Vonage number. A voice agent answers, listening with Deepgram Flux and
-speaking with Flux TTS. On stage it gets broken four times, in the ways every voice agent breaks
+A phone call comes in on a Vonage number, or a laptop microphone stands in for the phone. A voice
+agent answers, listening with Deepgram Flux and speaking with Flux TTS. On stage it gets broken four times, in the ways every voice agent breaks
 once real people call it, and three of those are fixed live on the open socket. A browser
 dashboard shows what is happening in type you can read from the back of the room.
 
@@ -15,11 +15,11 @@ Built for the Vonage x Deepgram Voice AI Developer Meetup at a16z Tech Week, Oct
 | Beat | You do | What breaks | What fixes it, on the open socket |
 |---|---|---|---|
 | Barge-in | Talk over the agent | It keeps talking, or restarts from the top | Flux TTS `Interrupt` reports `text_spoken`, so the agent resumes from what you actually heard |
-| The name on the account | Say "Gutentag" | It comes back as "Guten Tag" and the account will not open | A `Configure` message adds keyterms mid-stream |
-| The false start | Pause mid-sentence, then continue | Nothing. This one is the trade, not a fix | Tune `eager_eot_threshold` and read the issued-versus-used count |
+| The name on the file | Say "Gutentag" | It comes back misspelled, a different way each time, and the file will not open | A `Configure` message adds keyterms mid-stream |
 | The rambler | Talk for 45 seconds | It cuts you off, or waits forever | Tune `eot_threshold` and `eot_timeout_ms` while the confidence trace fills |
+| The false start | Pause mid-sentence, then continue | Nothing. This one is the trade, not a fix | Tune `eager_eot_threshold` and read the issued-versus-used count |
 
-Three fixes and one trade. Beat 3 is the trade: nothing is broken, you are buying 150 to 250 ms of
+Three fixes and one trade. Beat 4 is the trade: nothing is broken, you are buying 150 to 250 ms of
 latency for 50 to 70 percent more model calls, and the interesting cost is that a speculative turn
 can fire a tool call that no rollback un-fires.
 
@@ -65,8 +65,9 @@ Then:
 npm run dev -- --local       # microphone in, speakers out
 ```
 
-Open <http://127.0.0.1:3000> and talk. Everything downstream of the audio leg is identical to the
-phone path, so every beat works here.
+Open <http://127.0.0.1:3000>, press **Start call** (or `S`), and talk. The call waits for you so
+you control when it begins; pass `--autostart` to dial in the moment the process is up. Everything
+downstream of the audio leg is identical to the phone path, so every beat works here.
 
 ### If you hear nothing, or it will not start
 
@@ -107,8 +108,11 @@ see an error.
 | `4` | eager end of turn. Needs `3` on first |
 | `5` | multilingual model. The only toggle that reconnects, and it says so |
 | `R` | replay the last turn's confidence trace at quarter speed |
+| `S` | start the call, or end it. Local mode only; on a phone the call comes in on the Vonage number |
+| `M` | mute the presenter mic to the agent while talking to the room. The agent hears silence, not a dropped stream, so a turn still ends cleanly |
 
-Every switch starts off and every switch means "on is better". You never turn something off to
+All five switches (`bargeIn`, `keyterms`, `smartEot`, `eagerEot`, `multilingual`) start off and
+every switch means "on is better". You never turn something off to
 fix it. `4` needs `3` on first, because a speculative turn is promoted at end of turn and the
 silence timer never produces one. Pressed in order, 1 to 4, that never comes up.
 
@@ -197,16 +201,21 @@ node --env-file=.env scripts/multi-probe.mjs "Guten Tag, my name is Sam."
 
 ## Status
 
-Phases 0 to 4 of 7 are built and 25 tests pass. The spine runs end to end against the local
+Phases 0 to 4 of 7 are built and 36 tests pass. The spine runs end to end against the local
 harness: audio in, Flux STT with live `Configure`, one LLM turn, Flux TTS out, barge-in with
-`text_spoken`, seven live toggles, and the four-zone dashboard.
+`text_spoken`, five live switches and three live sliders, the four-zone dashboard, and a
+**Start call** button and presenter mic mute so the call begins when the presenter says so.
+
+On stage the demo runs from the laptop microphone with no phone number (decided 2026-09-29). The
+Vonage leg stays in the code and is not used in the talk.
+
+Beat 2's keyterm result was first measured at 16 kHz on a studio mic and has since been
+revalidated at 8 kHz, which is the rate local mode runs at and the rate a phone line delivers.
 
 Not done yet, and honest about it:
 
-- It has never answered a real phone call. Vonage credentials are the last blocker.
-- Beats 1, 3 and 4 have never been run end to end on a call.
-- Beat 2's keyterm result was measured at 16 kHz on a studio mic and is **not yet revalidated at
-  8 kHz**, which is the rate a phone actually delivers.
+- It has never answered a real phone call. The Vonage path is untested end to end.
+- All four beats have not yet been run back to back in one timed take on the presenter's voice.
 - Phase 2's exit criterion, every event in the union observed at least once, is not met.
 
 `docs/PHASES.md` has each phase with an exit criterion you can demonstrate rather than assert.
