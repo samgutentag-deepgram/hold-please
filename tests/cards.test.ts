@@ -31,7 +31,7 @@ test('every card fits the 15 foot budget', () => {
 })
 
 test('the keyterms card shows the keyterms the socket is actually sent', () => {
-  const text = codeCards(['Brisket', 'Gutentag']).keyterms.lines.map((l) => l.text).join('\n')
-  assert.match(text, /'Brisket'/)
+  const text = codeCards(['Otto', 'Gutentag']).keyterms.lines.map((l) => l.text).join('\n')
+  assert.match(text, /'Otto'/)
   assert.match(text, /'Gutentag'/)
 })
