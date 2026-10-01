@@ -22,6 +22,8 @@ export interface LocalLegOptions {
   speakerDeviceIndex: number
   muteWhileSpeaking: boolean
   isPlaying: () => boolean
+  /** Presenter mute. Sends silence rather than nothing, so Flux still hears the turn end. */
+  isMuted: () => boolean
   bus: Bus
 }
 
@@ -83,8 +85,9 @@ export class LocalAudioLeg implements AudioLeg {
     this.capture = capture
     capture.stdout.on('data', (chunk: Buffer) => {
       if (this.opts.muteWhileSpeaking && this.opts.isPlaying()) return
+      const muted = this.opts.isMuted()
       for (const frame of this.inFramer.push(chunk)) {
-        for (const listener of this.audioListeners) listener(frame)
+        for (const listener of this.audioListeners) listener(muted ? SILENCE : frame)
       }
     })
     capture.stderr.on('data', (chunk: Buffer) => console.error('[local mic]', chunk.toString().trim()))

@@ -26,8 +26,56 @@ bus.on((event) => {
 async function main(): Promise<void> {
   const config = loadConfig()
   const local = process.argv.includes('--local')
+  // Local calls wait for the Start button so the presenter sets the timing, not the terminal.
+  // --autostart restores the old behavior of dialing in the moment the process is up.
+  const autostart = process.argv.includes('--autostart')
   let activeCall: Call | null = null
+  let localBlocked: string | null = null
+  let localStarting = false
+  let micMuted = false
   const toggles = new ToggleStore(bus)
+
+  const startLocalCall = async (): Promise<void> => {
+    if (activeCall || localStarting) return
+    localStarting = true
+    try {
+      const [mic, speaker] = await Promise.all([
+        resolveMic(config.local.micDevice),
+        resolveSpeaker(config.local.speakerDevice),
+      ])
+      const leg = new LocalAudioLeg({
+        micDevice: mic.spec,
+        speakerDeviceIndex: speaker.index,
+        muteWhileSpeaking: config.local.muteWhileSpeaking,
+        isPlaying: () => activeCall?.playback.isPlaying() ?? false,
+        isMuted: () => micMuted,
+        bus,
+      })
+      console.log(`[local] microphone ${mic.label}, speaker ${speaker.label}.`)
+      const call = new Call(`local-${Date.now()}`, leg, bus, config, toggles)
+      activeCall = call
+      leg.onClose(() => {
+        if (activeCall === call) activeCall = null
+      })
+      // A call always starts listening. A mute left on from the last run would make the agent
+      // deaf on the first line of the next one.
+      if (micMuted) {
+        micMuted = false
+        bus.emit({ kind: 'mic.muted', muted: false })
+      }
+      leg.start()
+      await call.start()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      bus.emit({ kind: 'socket.degraded', which: 'stt', detail: `local call failed to start: ${message}` })
+      // No Call yet means no call.ended either, and the dashboard's button would stay disabled.
+      if (activeCall) await activeCall.end(message)
+      else bus.emit({ kind: 'call.ended', callId: 'local' })
+      activeCall = null
+    } finally {
+      localStarting = false
+    }
+  }
 
   if (!config.deepgram.apiKey) {
     console.error('[config] DEEPGRAM_API_KEY is not set. The dashboard will run; calls will fail visibly.')
@@ -41,8 +89,23 @@ async function main(): Promise<void> {
     host: config.host,
     bus,
     handlers: [createVonageWebhooks({ publicUrl: () => config.publicUrl, bus })],
-    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms, cards: codeCards(config.demo.keyterms) }),
+    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms, cards: codeCards(config.demo.keyterms), local, callActive: activeCall !== null, micMuted }),
     onCommand: (command) => {
+      if (command.type === 'mic.toggle') {
+        micMuted = !micMuted
+        bus.emit({ kind: 'mic.muted', muted: micMuted })
+        return undefined
+      }
+      if (command.type === 'call.start' || command.type === 'call.end') {
+        if (!local) return { type: 'call.rejected', reason: 'calls come in on the Vonage number in this mode' }
+        if (command.type === 'call.start') {
+          if (localBlocked) return { type: 'call.rejected', reason: localBlocked }
+          void startLocalCall()
+        } else {
+          void activeCall?.end('ended from the dashboard')
+        }
+        return undefined
+      }
       if (command.type === 'toggle') {
         const result = toggles.set(String(command['name']), command['value'])
         return result.ok
@@ -100,29 +163,12 @@ async function main(): Promise<void> {
         which: 'stt',
         detail: `${missing.join(' and ')} not set. See the README quickstart.`,
       })
-      return
+      localBlocked = `${missing.join(' and ')} not set`
+    } else {
+      console.error('[local] wear headphones, or set LOCAL_MUTE_WHILE_SPEAKING=1, or it hears itself.')
+      if (autostart) await startLocalCall()
+      else console.error('[local] press Start call on the dashboard when you are ready.')
     }
-
-    const [mic, speaker] = await Promise.all([
-      resolveMic(config.local.micDevice),
-      resolveSpeaker(config.local.speakerDevice),
-    ])
-    const leg = new LocalAudioLeg({
-      micDevice: mic.spec,
-      speakerDeviceIndex: speaker.index,
-      muteWhileSpeaking: config.local.muteWhileSpeaking,
-      isPlaying: () => activeCall?.playback.isPlaying() ?? false,
-      bus,
-    })
-    console.log(`[local] microphone ${mic.label}, speaker ${speaker.label}.`)
-    const call = new Call('local', leg, bus, config, toggles)
-    activeCall = call
-    leg.onClose(() => {
-      activeCall = null
-    })
-    console.error('[local] wear headphones, or set LOCAL_MUTE_WHILE_SPEAKING=1, or it hears itself.')
-    leg.start()
-    await call.start()
   }
 
   const shutdown = (signal: NodeJS.Signals) => {

@@ -39,6 +39,15 @@
   #state[data-state="thinking"] { background: var(--thinking); }
   #state[data-state="speaking"] { background: var(--speaking); }
   #state[data-state="interrupted"] { background: var(--interrupted); }
+  /* Local mode only. The call starts when the presenter says so, not when the process does. */
+  #callbtn { font: 800 22px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 22px; border-radius: 999px; border: 3px solid var(--listening); background: transparent; color: var(--fg); cursor: pointer; }
+  #callbtn[data-in-call="true"] { border-color: var(--interrupted); }
+  #callbtn:disabled { opacity: 0.5; cursor: wait; }
+  #callbtn kbd { margin-left: 8px; }
+  /* Presenter mute: which audience he is talking to, readable from the back row. */
+  #micbtn { font: 800 22px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 22px; border-radius: 999px; border: 3px solid var(--listening); background: var(--listening); color: #000; cursor: pointer; }
+  #micbtn[data-muted="true"] { background: transparent; color: var(--dim); border-color: var(--idle); }
+  #micbtn kbd { margin-left: 8px; color: inherit; border-color: currentColor; }
   #conn { font-size: 16px; color: var(--dim); }
   #conn[data-state="disconnected"] { color: var(--interrupted); font-weight: 700; }
 
@@ -153,6 +162,8 @@
       <span id="conn" data-state="connecting">connecting</span>
       <span id="lang"></span>
       <span id="state" data-state="idle">waiting</span>
+      <button type="button" id="micbtn" hidden>Mic live <kbd>M</kbd></button>
+      <button type="button" id="callbtn" hidden>Start call <kbd>S</kbd></button>
     </div>
   </header>
 
@@ -237,6 +248,34 @@
 
   function sendToggle(name, value) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'toggle', name, value })) }
 
+  const callBtn = document.getElementById('callbtn')
+  let inCall = false
+  function renderCallBtn() {
+    callBtn.dataset.inCall = String(inCall)
+    callBtn.disabled = false
+    callBtn.firstChild.textContent = inCall ? 'End call ' : 'Start call '
+    if (typeof renderMicBtn === 'function') renderMicBtn()
+  }
+  function toggleCall() {
+    if (callBtn.hidden || callBtn.disabled || !ws || ws.readyState !== 1) return
+    callBtn.disabled = true
+    ws.send(JSON.stringify({ type: inCall ? 'call.end' : 'call.start' }))
+  }
+  callBtn.addEventListener('click', toggleCall)
+
+  const micBtn = document.getElementById('micbtn')
+  let micMuted = false
+  function renderMicBtn() {
+    micBtn.hidden = callBtn.hidden || !inCall
+    micBtn.dataset.muted = String(micMuted)
+    micBtn.firstChild.textContent = micMuted ? 'Mic off, talking to the room ' : 'Mic live '
+  }
+  function toggleMic() {
+    if (micBtn.hidden || !ws || ws.readyState !== 1) return
+    ws.send(JSON.stringify({ type: 'mic.toggle' }))
+  }
+  micBtn.addEventListener('click', toggleMic)
+
   function renderToggles() {
     if (!toggles) return
     // The marker on the live bar is where the turn will fire. It has to move with the dial,
@@ -272,6 +311,8 @@
     if (e.key === 'r' || e.key === 'R') { replayTrace(); return }
     if (e.key === 'c' || e.key === 'C') { if (document.body.classList.contains('carded')) hideCard(); else if (lastCard) showCard(lastCard); return }
     if (e.key === 'Escape') { hideCard(); return }
+    if (e.key === 's' || e.key === 'S') { toggleCall(); return }
+    if (e.key === 'm' || e.key === 'M') { toggleMic(); return }
     const i = ['1', '2', '3', '4', '5'].indexOf(e.key)
     if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
@@ -446,7 +487,8 @@
   function apply(e) {
     lastEventT = e.t
     switch (e.kind) {
-      case 'call.ended': callStartedAt = null; el.state.dataset.state = 'idle'; el.state.textContent = 'call ended'; break
+      case 'mic.muted': micMuted = e.muted; renderMicBtn(); break
+      case 'call.ended': inCall = false; renderCallBtn(); callStartedAt = null; el.state.dataset.state = 'idle'; el.state.textContent = 'call ended'; break
       case 'agent.state': el.state.dataset.state = e.state; el.state.textContent = e.state; break
       case 'stt.update':
         el.bar.style.width = Math.round(e.eotConfidence * 100) + '%'
@@ -467,7 +509,7 @@
         el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
-      case 'call.started': el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
+      case 'call.started': inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; break
       case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); el.agent.scrollTop = el.agent.scrollHeight; break
       case 'tts.interrupt':
         el.agent.innerHTML = ''
@@ -527,11 +569,14 @@
         cards = (frame.snapshot && frame.snapshot.cards) || {}
         replaying = true
         if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
+        callBtn.hidden = !(frame.snapshot && frame.snapshot.local)
         try { for (const ev of frame.events) apply(ev) } finally { replaying = false }
+        inCall = !!(frame.snapshot && frame.snapshot.callActive); micMuted = !!(frame.snapshot && frame.snapshot.micMuted); renderCallBtn()
         if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
       }
       else if (frame.type === 'event') apply(frame.event)
       else if (frame.type === 'toggles') { toggles = { ...frame.toggles }; renderToggles(); el.rejected.textContent = '' }
+      else if (frame.type === 'call.rejected') { el.rejected.textContent = `call: ${frame.reason}`; renderCallBtn() }
       else if (frame.type === 'toggle.rejected') { el.rejected.textContent = `${frame.name}: ${frame.reason}`; renderToggles() }
       if (lastEventT) clockOffset = performance.now() - lastEventT
     })

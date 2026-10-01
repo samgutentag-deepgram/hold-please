@@ -9,10 +9,13 @@ import { now } from './clock.ts'
 //   socket.recovered the banner needs a reason to go away; a reconnect is not a config.applied
 //   stt.configureSent the exact Configure frame put on the open socket, so the code card can show
 //                    the wire next to the diff and the room sees the change was not a restart
+//   mic.muted        the presenter turned away to talk to the room; the dashboard says so in
+//                    large type, so the room also learns when he is talking to the agent
 export type AgentState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'interrupted'
 
 export type DemoEvent =
   | { t: number; kind: 'process.started'; port: number; host: string }
+  | { t: number; kind: 'mic.muted'; muted: boolean }
   | { t: number; kind: 'call.started'; callId: string }
   | { t: number; kind: 'call.ended'; callId: string }
   | { t: number; kind: 'agent.state'; state: AgentState }
