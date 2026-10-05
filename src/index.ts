@@ -5,7 +5,8 @@ import { Call } from './call.ts'
 import { LocalAudioLeg } from './audio/local.ts'
 import { resolveMic, resolveSpeaker } from './audio/devices.ts'
 import { createVonageWebhooks, VONAGE_WS_PATH, VonageAudioLeg } from './telephony/vonage.ts'
-import { DEFAULT_TOGGLES, TOGGLE_LIMITS, ToggleStore } from './toggles/state.ts'
+import { DEFAULT_TOGGLES, TOGGLE_LIMITS, ToggleStore, type Toggles } from './toggles/state.ts'
+import { BEATS, SCRIPT, togglesForStep } from './agent/script.ts'
 import { codeCards } from './toggles/cards.ts'
 
 // Degrade, never crash. An unhandled error on a projector is worse than a degraded state, so
@@ -35,6 +36,13 @@ async function main(): Promise<void> {
   let micMuted = false
   const toggles = new ToggleStore(bus)
 
+  // Order matters: eager rides on smart, and eager's threshold may never exceed eot's.
+  const SET_ORDER = ['eagerEot', 'smartEot', 'bargeIn', 'keyterms', 'multilingual', 'eagerEotThreshold', 'eotThreshold', 'eotTimeoutMs'] as const
+  const applyToggles = (target: Partial<Toggles>): void => {
+    const want = { ...DEFAULT_TOGGLES, ...target }
+    for (const name of SET_ORDER) toggles.set(name, want[name])
+  }
+
   const startLocalCall = async (): Promise<void> => {
     if (activeCall || localStarting) return
     localStarting = true
@@ -52,6 +60,8 @@ async function main(): Promise<void> {
         bus,
       })
       console.log(`[local] microphone ${mic.label}, speaker ${speaker.label}.`)
+      // Every new call starts clean: all switches off, sliders at their defaults.
+      applyToggles({})
       const call = new Call(`local-${Date.now()}`, leg, bus, config, toggles)
       activeCall = call
       leg.onClose(() => {
@@ -89,11 +99,31 @@ async function main(): Promise<void> {
     host: config.host,
     bus,
     handlers: [createVonageWebhooks({ publicUrl: () => config.publicUrl, bus })],
-    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms, cards: codeCards(config.demo.keyterms), local, callActive: activeCall !== null, micMuted }),
+    snapshot: () => ({ toggles: toggles.get(), defaults: DEFAULT_TOGGLES, limits: TOGGLE_LIMITS, keyterms: config.demo.keyterms, cards: codeCards(config.demo.keyterms), script: SCRIPT.map((s) => ({ beat: s.beat, label: s.label })), beats: BEATS, local, callActive: activeCall !== null, micMuted }),
     onCommand: (command) => {
       if (command.type === 'mic.toggle') {
         micMuted = !micMuted
         bus.emit({ kind: 'mic.muted', muted: micMuted })
+        return undefined
+      }
+      if (command.type === 'agent.hush') {
+        activeCall?.loop.hush()
+        return undefined
+      }
+      if (command.type === 'agent.seek') {
+        const step = Number(command['step'])
+        if (!Number.isInteger(step) || step < 0 || step >= SCRIPT.length) return { type: 'error', reason: 'no such step' }
+        void (async () => {
+          if (!activeCall && local) await startLocalCall()
+          if (!activeCall) return
+          bus.emit({ kind: 'agent.seeked', step, caller: SCRIPT[step - 1]?.caller ?? '' })
+          activeCall.loop.seek(step)
+          applyToggles(togglesForStep(step))
+        })()
+        return undefined
+      }
+      if (command.type === 'agent.rewind') {
+        activeCall?.loop.rewind()
         return undefined
       }
       if (command.type === 'call.start' || command.type === 'call.end') {

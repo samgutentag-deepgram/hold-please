@@ -67,6 +67,7 @@ export class FluxTts {
 
   // After Interrupt, frames already on the wire keep arriving until SpeechInterrupted. Drop them.
   private discardAudio = false
+  private interruptBy: 'caller' | 'presenter' | 'seek' = 'caller'
 
   private readonly bus: Bus
   private readonly createSocket: SocketFactory
@@ -161,7 +162,8 @@ export class FluxTts {
   }
 
   /** Barge-in. Stop playback locally first; this call is for the text_spoken reconciliation. */
-  interrupt(playbackOffsetMs: number): void {
+  interrupt(playbackOffsetMs: number, by: 'caller' | 'presenter' | 'seek' = 'caller'): void {
+    this.interruptBy = by
     this.discardAudio = true
     this.awaitingFirstByte = false
     this.send({ type: 'Interrupt', playback_offset: { type: 'time_ms', value: Math.max(0, Math.round(playbackOffsetMs)) } })
@@ -210,7 +212,7 @@ export class FluxTts {
     switch (msg.type) {
       case 'SpeechInterrupted':
         this.discardAudio = false
-        this.bus.emit({ kind: 'tts.interrupt', textSpoken: msg.text_spoken ?? '' })
+        this.bus.emit({ kind: 'tts.interrupt', textSpoken: msg.text_spoken ?? '', by: this.interruptBy })
         break
       case 'Warning':
         // An ignored Interrupt means no SpeechInterrupted is coming, so stop discarding.

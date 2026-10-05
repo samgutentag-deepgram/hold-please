@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your Demo Works. Your Callers Don't.</title>
+<title>Same Call, Better Agent</title>
 <style>
   /* First cut of the four-zone layout from docs/SPEC.md. Everything inline on purpose: the
      room's network is not ours, so the page loads with zero external requests.
@@ -74,6 +74,27 @@
   #rejected { color: var(--interrupted); font-weight: 700; font-size: 14px; }
   #applied { color: var(--listening); font-weight: 700; font-size: 14px; }
   /* Rows are rewritten by fitTranscript() so each zone gets the height its turn needs. */
+  /* Script rail: the happy path as dots down the left edge. Filled = said and remembered; the ring
+     is the next line. Driven by agent.progress, so Z visibly moves the playhead back. */
+  body { padding-left: calc(290px * var(--ui, 1)); }
+  #rail { position: fixed; left: 0; top: 0; bottom: 0; width: 270px; zoom: var(--ui, 1); padding: 18px 14px 18px 22px; border-right: 1px solid var(--line); overflow: hidden; font-size: 15px; line-height: 1.25; color: var(--dim); }
+  #rail .beat { font: 800 12px/1 system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; margin: 16px 0 6px; color: var(--idle); }
+  #rail .beat.now { color: var(--fg); }
+  #rail ol { list-style: none; margin: 0; padding: 0; position: relative; }
+  #rail li { position: relative; padding: 4px 0 8px 26px; }
+  #rail li::before { content: ''; position: absolute; left: 0; top: 7px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--idle); background: transparent; }
+  #rail li::after { content: ''; position: absolute; left: 7px; top: 22px; bottom: -4px; width: 2px; background: var(--line); }
+  #rail li:last-child::after { display: none; }
+  #rail li.done { color: var(--fg); }
+  #rail li.done::before { background: var(--listening); border-color: var(--listening); }
+  #rail li.next { color: var(--fg); font-weight: 700; }
+  /* Hollow blue: the step you are on, not said yet. Solid blue: said, still being worked (Z empties it). */
+  #rail li.next::before { border-color: var(--speaking); background: transparent; box-shadow: 0 0 0 5px rgba(88,166,255,0.3); }
+  #rail li.next.said::before { background: var(--speaking); }
+  #rail li.next > span { background: rgba(88,166,255,0.14); border-radius: 6px; padding: 2px 6px; margin-left: -6px; }
+  #rail li[data-step] { cursor: pointer; }
+  #rail .hint { font-size: 12px; color: var(--idle); margin-top: 18px; }
+  #rail .key { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; margin-left: 4px; }
   main { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); gap: 12px 32px; min-height: 0; }
 
   /* The code card. A switch turning on pops the change up beside the transcript as a diff, so the
@@ -136,6 +157,7 @@
   #caller.interim { color: #a3adb8; }
   #agent { color: var(--agent); }
   #agent .cut { color: var(--interrupted); font-weight: 500; font-size: 0.6em; margin-left: 0.4em; vertical-align: middle; }
+  #agent .cut.hushed { color: var(--dim); }
   .empty { color: var(--dim); font-weight: 500; }
 
   .bar-wrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 8px 16px; }
@@ -163,6 +185,8 @@
   .stat { display: grid; gap: 2px; }
   .stat .k { font: 700 13px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
   .stat .v { font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .stat.spec .k { color: var(--thinking); }
+  .stat.spec .v { font-size: 30px; }
   .stat .v small { font-size: 14px; color: var(--dim); font-weight: 500; }
   #degraded { display: none; background: var(--interrupted); color: #000; font-weight: 800; padding: 10px 16px; border-radius: 10px; }
   #degraded.on { display: block; }
@@ -172,7 +196,7 @@
 </head>
 <body>
   <header>
-    <h1>Your Demo Works. Your Callers Don't.</h1>
+    <h1>Same Call, Better Agent</h1>
     <div class="right">
       <span id="conn" data-state="connecting">connecting</span>
       <span id="lang"></span>
@@ -188,13 +212,13 @@
     
     <label class="sw"><input type="checkbox" data-toggle="smartEot"><span class="track"></span><span class="lbl">smart EOT</span><kbd>3</kbd></label>
     <label class="sw"><input type="checkbox" data-toggle="eagerEot"><span class="track"></span><span class="lbl">eager EOT</span><kbd>4</kbd></label>
+    <!-- Sliders removed 2026-10-04: the talk runs on the defaults (eager 0.5, eot 0.7, timeout 5000). -->
     <label class="sw"><input type="checkbox" data-toggle="multilingual"><span class="track"></span><span class="lbl">multilingual</span><kbd>5</kbd></label>
-    <label class="sl">eager <input type="range" data-toggle="eagerEotThreshold" min="0.3" max="0.9" step="0.05"><output>0.50</output></label>
-    <label class="sl">eot <input type="range" data-toggle="eotThreshold" min="0.5" max="0.9" step="0.05"><output>0.70</output></label>
-    <label class="sl">timeout <input type="range" data-toggle="eotTimeoutMs" min="500" max="10000" step="100"><output>5000</output></label>
     <span id="applied"></span>
     <span id="rejected"></span>
   </div>
+
+  <aside id="rail" aria-label="Script progress"></aside>
 
   <main>
     <section class="turn">
@@ -233,11 +257,11 @@
   </div>
 
   <footer>
+    <div class="stat spec"><span class="k">Speculative issued / used</span><span class="v" id="spec">0 / 0</span></div>
     <div class="stat"><span class="k">End of turn</span><span class="v" id="eot">–<small> ms</small></span></div>
     <div class="stat"><span class="k">EOT p50 / p90 / p95</span><span class="v" id="eotp">–</span></div>
     <div class="stat"><span class="k">LLM first token</span><span class="v" id="ttft">–<small> ms</small></span></div>
     <div class="stat"><span class="k">TTS first byte</span><span class="v" id="ttfb">–<small> ms</small></span></div>
-    <div class="stat"><span class="k">Speculative issued / used</span><span class="v" id="spec">0 / 0</span></div>
     <div class="stat"><span class="k">Socket uptime</span><span class="v" id="uptime">–</span></div>
     <div class="stat"><span class="k">Reconnects</span><span class="v" id="reconnects">0</span></div>
     <span id="degraded"></span>
@@ -324,14 +348,71 @@
   }
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.target.type === 'range' || e.metaKey || e.ctrlKey || e.altKey) return
+    // Shift+number restarts a beat: 0 is the opener, then one per beat. Plain numbers stay the switches.
+    if (e.shiftKey && /^Digit[0-9]$/.test(e.code)) { e.preventDefault(); seekBeat(Number(e.code.slice(5))); return }
+    if (e.key === 'ArrowRight') { e.preventDefault(); arrow(1); return }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); arrow(-1); return }
     if (e.key === 'r' || e.key === 'R') { replayTrace(); return }
     if (e.key === 'c' || e.key === 'C') { if (document.body.classList.contains('carded')) hideCard(); else if (lastCard) showCard(lastCard); return }
     if (e.key === 'Escape') { hideCard(); return }
     if (e.key === 's' || e.key === 'S') { toggleCall(); return }
     if (e.key === 'm' || e.key === 'M') { toggleMic(); return }
+    if ((e.key === 'h' || e.key === 'H') && ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'agent.hush' })); return }
+    if ((e.key === 'z' || e.key === 'Z') && ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'agent.rewind' })); return }
     const i = ['1', '2', '3', '4', '5'].indexOf(e.key)
     if (i >= 0 && toggles) { const name = tgSwitches[i].dataset.toggle; sendToggle(name, !toggles[name]) }
   })
+
+  // The script rail. Steps and beats come from the server (src/agent/script.ts). A step is done when
+  // a caller line the agent still remembers completed it, so Z moves the ring back exactly when the
+  // line it removed was a script line. Shift-click a step to jump the call there.
+  // The blue dot is the step being worked: the last line said, or the step a jump landed on,
+  // whichever is later. It stays put through a broken run, the explanation and the retry, and only
+  // moves when the next scripted line is said or a jump moves it.
+  let railScript = [], railBeats = [], railDone = new Set(), seekingUntil = 0, railFloor = 0
+  function railActive() {
+    const last = railDone.size ? Math.max(...railDone) : -1
+    return Math.max(railFloor, last)
+  }
+  function renderRail() {
+    const rail = document.getElementById('rail')
+    const next = railActive()
+    rail.innerHTML = railBeats.map((b) => {
+      const idx = railScript.map((s, i) => [s, i]).filter(([s]) => s.beat === b.id)
+      const now = idx.some(([, i]) => i === next)
+      const items = idx.map(([s, i]) => {
+        const cls = i === next ? (railDone.has(i) ? 'next said' : 'next') : railDone.has(i) ? 'done' : ''
+        return `<li class="${cls}" data-step="${i}" title="Shift-click to jump here"><span>${s.label}</span></li>`
+      }).join('')
+      return `<div class="beat${now ? ' now' : ''}">${b.title}${b.key ? `<span class="key">${b.key}</span>` : ''}</div><ol>${items}</ol>`
+    }).join('') + '<p class="hint">← → move between beats<br>Shift+0 to 5 restart a beat<br>Shift-click a step to jump</p>'
+  }
+  function seekTo(step) {
+    if (!ws || ws.readyState !== 1) return
+    seekingUntil = Date.now() + 2500
+    ws.send(JSON.stringify({ type: 'agent.seek', step }))
+  }
+  document.getElementById('rail').addEventListener('click', (e) => {
+    const li = e.target.closest('li[data-step]')
+    if (li && e.shiftKey) seekTo(Number(li.dataset.step))
+  })
+  // Arrow keys treat each beat as its own small demo. The current beat is the one last jumped to,
+  // or the furthest one a spoken line has reached. Right starts the next beat; left restarts this
+  // one, or goes back a beat when this one has not started yet.
+  let railBeat = 0
+  const beatStart = (b) => railScript.findIndex((s) => s.beat === railBeats[b]?.id)
+  function beatOfStep(i) { return railBeats.findIndex((b) => b.id === railScript[i]?.beat) }
+  function seekBeat(b) {
+    if (b < 0 || b >= railBeats.length) return
+    railBeat = b
+    seekTo(beatStart(b))
+  }
+  function arrow(dir) {
+    if (!railBeats.length) return
+    if (dir > 0) return seekBeat(railBeat + 1)
+    const started = [...railDone].some((i) => beatOfStep(i) === railBeat)
+    seekBeat(started ? railBeat : railBeat - 1)
+  }
 
   // The turn currently being spoken, and the last one frozen on screen.
   let turnStartT = null
@@ -504,7 +585,8 @@
   }
 
   function onToggleCard(name, before, after) {
-    if (replaying) return
+    // A reset at call start or a jump from the rail flips several switches at once; no cards for those.
+    if (replaying || !inCall || Date.now() < seekingUntil) return
     if (typeof after === 'boolean') {
       if (after && cards[name]) showCard(cards[name], name)
       else if (!after && cardFor === name) hideCard()
@@ -538,16 +620,37 @@
         el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
-      case 'call.started': inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; fitTranscript(true); break
+      case 'call.started': railDone = new Set(); railBeat = 0; railFloor = 0; renderRail(); inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; fitTranscript(true); break
       case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); fitTranscript(true); break
       case 'tts.interrupt':
+        if (e.by === 'seek') break
         el.agent.innerHTML = ''
         el.agent.append(document.createTextNode(e.textSpoken || '(cut before a word was heard)'))
-        const cut = document.createElement('span'); cut.className = 'cut'; cut.textContent = '⟵ heard up to here'
+        // A presenter stop is stage management, not barge-in. Never let it look like beat 1's fix.
+        const cut = document.createElement('span'); cut.className = e.by === 'presenter' ? 'cut hushed' : 'cut'; cut.textContent = e.by === 'presenter' ? '⟵ stopped' : '⟵ heard up to here'
         el.agent.append(cut)
         fitTranscript(true)
         break
       case 'tts.firstByte': ms(el.ttfb, e.ttfbMs); break
+      case 'agent.progress':
+        railDone = new Set(e.done)
+        for (const i of railDone) railBeat = Math.max(railBeat, beatOfStep(i))
+        renderRail(); break
+      case 'agent.seeked':
+        // Each beat starts on a clean screen, so the room reads it as its own small demo.
+        seekingUntil = Date.now() + 2500
+        railBeat = beatOfStep(e.step)
+        railFloor = e.step
+        // A clean take up to here: the last scripted caller line, and the agent's question arrives
+        // as its own agent.reply.
+        el.caller.textContent = e.caller || 'Listening…'; el.caller.classList.toggle('empty', !e.caller); el.agent.textContent = ''; fitTranscript(true)
+        break
+      case 'agent.rewound':
+        // Presenter-only feedback, small and grey: the room should not read it as a feature.
+        el.applied.textContent = `↶ rewound, ${e.turnsLeft} caller turns kept`
+        el.applied.style.color = 'var(--dim)'
+        clearTimeout(el.applied._t); el.applied._t = setTimeout(() => { el.applied.textContent = '' }, 3000)
+        break
       case 'socket.degraded': el.degraded.textContent = `${e.which} degraded: ${e.detail}`.slice(0, 120); el.degraded.classList.add('on'); break
       case 'socket.recovered': reconnects += e.attempts ? 1 : 0; el.reconnects.textContent = reconnects; el.degraded.classList.remove('on'); break
       case 'config.applied':
@@ -636,6 +739,7 @@
       if (frame.type === 'replay') {
         specTurns.clear(); specUsed = 0
         cards = (frame.snapshot && frame.snapshot.cards) || {}
+        railScript = (frame.snapshot && frame.snapshot.script) || []; railBeats = (frame.snapshot && frame.snapshot.beats) || []; railDone = new Set(); renderRail()
         replaying = true
         if (frame.snapshot && frame.snapshot.toggles) { toggles = { ...frame.snapshot.toggles }; renderToggles() }
         callBtn.hidden = !(frame.snapshot && frame.snapshot.local)

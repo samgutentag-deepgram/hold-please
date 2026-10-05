@@ -62,7 +62,7 @@ test('interrupt carries the playback offset, drops in-flight audio, and surfaces
   assert.equal(heard.length, 0, 'frames after Interrupt are discarded')
   sock.serverJson({ type: 'SpeechInterrupted', audio_played_ms: 2340, text_spoken: 'Long', text_remaining: ' answer.' })
   const ev = bus.log.find((e) => e.kind === 'tts.interrupt')
-  assert.ok(ev && ev.kind === 'tts.interrupt' && ev.textSpoken === 'Long')
+  assert.ok(ev && ev.kind === 'tts.interrupt' && ev.textSpoken === 'Long' && ev.by === 'caller')
   sock.serverBinary(Buffer.alloc(640)) // next turn's audio flows again
   assert.equal(heard.length, 1)
 })
@@ -77,4 +77,14 @@ test('an ignored interrupt (warning) stops discarding, and an Error degrades', a
   assert.equal(heard.length, 1)
   sock.serverJson({ type: 'Error', code: 'NET-0003', description: 'time limit' })
   assert.ok(bus.log.some((e) => e.kind === 'socket.degraded' && e.which === 'tts'))
+})
+
+test('a presenter stop is labelled as one, so the dashboard never shows it as barge-in', async () => {
+  const { bus, tts, sock } = await connected()
+  tts.beginTurn('turn-3')
+  tts.speak('Long answer.')
+  tts.interrupt(500, 'presenter')
+  sock.serverJson({ type: 'SpeechInterrupted', audio_played_ms: 500, text_spoken: 'Long', text_remaining: ' answer.' })
+  const ev = bus.log.find((e) => e.kind === 'tts.interrupt')
+  assert.ok(ev && ev.kind === 'tts.interrupt' && ev.by === 'presenter')
 })

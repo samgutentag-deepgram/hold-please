@@ -61,7 +61,7 @@ export function codeCards(keyterms: readonly string[]): Record<CardName, CodeCar
       title: 'Keyterms',
       gist: 'Teach it the words, on the call that is already open.',
       when: {
-        on: 'You know the word is coming: his name, from caller ID.',
+        on: 'You know the words are coming: the vets, when booking.',
         off: 'Words for another step. Swap the list when the step changes.',
       },
       lines: [

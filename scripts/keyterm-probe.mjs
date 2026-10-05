@@ -47,7 +47,7 @@ function transcribe(pcm, keyterms) {
 }
 
 // KEYTERMS=Gough,Kearny node scripts/keyterm-probe.mjs "..."  overrides the list under test.
-const KEYTERMS = (process.env.KEYTERMS ?? 'Gutentag,Otto,Juniper').split(',').map((s) => s.trim()).filter(Boolean)
+const KEYTERMS = (process.env.KEYTERMS ?? 'Gutentag,Okafor,Lindqvist,Juniper').split(',').map((s) => s.trim()).filter(Boolean)
 if (process.env.AUDIO) {
   let pcm = readFileSync(process.env.AUDIO)
   if (pcm.subarray(0, 4).toString() === 'RIFF') pcm = pcm.subarray(44)

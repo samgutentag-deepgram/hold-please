@@ -9,6 +9,11 @@ import { now } from './clock.ts'
 //   socket.recovered the banner needs a reason to go away; a reconnect is not a config.applied
 //   stt.configureSent the exact Configure frame put on the open socket, so the code card can show
 //                    the wire next to the diff and the room sees the change was not a restart
+//   agent.hushed     the presenter stopped the agent from the keyboard, whatever the toggles
+//                    say. A stage control, not a demo feature, so it never reads as barge-in
+//   agent.rewound    the presenter undid the caller's last turn, so a beat can be run again
+//   agent.progress   script steps the agent's memory has completed, which drives the rail
+//   agent.seeked     the presenter jumped the call to a script step from the rail
 //   mic.muted        the presenter turned away to talk to the room; the dashboard says so in
 //                    large type, so the room also learns when he is talking to the agent
 export type AgentState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'interrupted'
@@ -30,7 +35,11 @@ export type DemoEvent =
   | { t: number; kind: 'llm.speculativeCancel'; turnId: string }
   | { t: number; kind: 'llm.firstToken'; turnId: string; ttftMs: number }
   | { t: number; kind: 'tts.firstByte'; turnId: string; ttfbMs: number }
-  | { t: number; kind: 'tts.interrupt'; textSpoken: string }
+  | { t: number; kind: 'tts.interrupt'; textSpoken: string; by: 'caller' | 'presenter' | 'seek' }
+  | { t: number; kind: 'agent.hushed' }
+  | { t: number; kind: 'agent.rewound'; turnsLeft: number }
+  | { t: number; kind: 'agent.progress'; done: number[] }
+  | { t: number; kind: 'agent.seeked'; step: number; caller: string }
   | { t: number; kind: 'socket.degraded'; which: 'stt' | 'tts' | 'vonage' | 'llm'; detail: string }
   | { t: number; kind: 'socket.recovered'; which: 'stt' | 'tts'; attempts: number }
   | { t: number; kind: 'toggle.changed'; name: string; value: unknown }

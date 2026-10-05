@@ -49,7 +49,7 @@ test('a throwing listener does not stop delivery to the others', () => {
     bus.on(() => {
       delivered += 1
     })
-    bus.emit({ kind: 'tts.interrupt', textSpoken: 'Thanks for calling' })
+    bus.emit({ kind: 'tts.interrupt', textSpoken: 'Thanks for calling', by: 'caller' })
   } finally {
     console.error = originalError
   }

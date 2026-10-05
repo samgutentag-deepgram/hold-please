@@ -1,4 +1,6 @@
-# Your Demo Works. Your Callers Don't.
+# Same Call, Better Agent
+
+Tuning a voice agent live, without hanging up.
 
 **This demo shows the same voice agent break on real callers and get fixed mid-call, without a
 reconnect.**
@@ -109,7 +111,9 @@ see an error.
 | `5` | multilingual model. The only toggle that reconnects, and it says so |
 | `R` | replay the last turn's confidence trace at quarter speed |
 | `S` | start the call, or end it. Local mode only; on a phone the call comes in on the Vonage number |
-| `M` | mute the presenter mic to the agent while talking to the room. The agent hears silence, not a dropped stream, so a turn still ends cleanly |
+| `M` | mute the presenter mic to the agent while talking to the room. The agent hears silence, not a dropped stream, so a turn still ends cleanly. The agent keeps talking; press `H` to stop it |
+| `Z` | rewind: the agent forgets the last thing you said and its reply. Press twice after beat 1's broken run (the question and the interruption) to ask the same question again from a clean slate |
+| `H` | stop the agent talking, whatever the switches say, without muting. A stage control, not a demo feature: the transcript marks it "stopped", never "heard up to here" |
 
 All five switches (`bargeIn`, `keyterms`, `smartEot`, `eagerEot`, `multilingual`) start off and
 every switch means "on is better". You never turn something off to
