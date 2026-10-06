@@ -384,6 +384,8 @@ export class AgentLoop {
       return
     }
 
+    // A guess on different words is a thrown-away model call. Say so, so the dashboard counts it.
+    if (speculative) this.cancelSpeculation()
     this.current?.abort.abort()
     this.current = null
     const turn = this.newTurn(userText, false)

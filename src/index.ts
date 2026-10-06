@@ -67,12 +67,10 @@ async function main(): Promise<void> {
       leg.onClose(() => {
         if (activeCall === call) activeCall = null
       })
-      // A call always starts listening. A mute left on from the last run would make the agent
-      // deaf on the first line of the next one.
-      if (micMuted) {
-        micMuted = false
-        bus.emit({ kind: 'mic.muted', muted: false })
-      }
+      // A call always starts muted. The greeting plays out of the speakers the moment the call
+      // opens, and a live mic hears it and answers itself. The presenter unmutes with M.
+      micMuted = true
+      bus.emit({ kind: 'mic.muted', muted: true })
       leg.start()
       await call.start()
     } catch (err) {

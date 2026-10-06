@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Same Call, Better Agent</title>
+<title>Tuning Voice Agents for Real Callers</title>
 <style>
   /* First cut of the four-zone layout from docs/SPEC.md. Everything inline on purpose: the
      room's network is not ours, so the page loads with zero external requests.
@@ -51,6 +51,16 @@
   #micbtn { font: 800 20px/1 system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 20px; border-radius: 999px; border: 3px solid var(--listening); background: var(--listening); color: #000; cursor: pointer; }
   #micbtn[data-muted="true"] { background: transparent; color: var(--dim); border-color: var(--idle); }
   #micbtn kbd { margin-left: 8px; color: inherit; border-color: currentColor; }
+  /* State icons, readable from the back row: a green mic while the agent can hear the presenter, a
+     grey slashed mic while muted; a green handset lifted during a call, a red one hung up after. */
+  #micbtn, #callbtn { display: inline-flex; align-items: center; padding: 8px 16px; }
+  .ico { display: inline-flex; }
+  .ico svg { width: 30px; height: 30px; }
+  #micbtn { background: transparent; color: var(--listening); border-color: var(--listening); }
+  #micbtn[data-muted="true"] { color: var(--idle); border-color: var(--idle); }
+  #callbtn { color: var(--interrupted); border-color: var(--interrupted); }
+  #callbtn[data-in-call="true"] { color: var(--listening); border-color: var(--listening); }
+  #callbtn[data-in-call="false"] .ico svg { transform: rotate(135deg); }
   #conn { font-size: 16px; color: var(--dim); }
   #conn[data-state="disconnected"] { color: var(--interrupted); font-weight: 700; }
 
@@ -187,6 +197,7 @@
   .stat .v { font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
   .stat.spec .k { color: var(--thinking); }
   .stat.spec .v { font-size: 30px; }
+  .stat.waited .k { color: var(--speaking); }
   .stat .v small { font-size: 14px; color: var(--dim); font-weight: 500; }
   #degraded { display: none; background: var(--interrupted); color: #000; font-weight: 800; padding: 10px 16px; border-radius: 10px; }
   #degraded.on { display: block; }
@@ -196,13 +207,13 @@
 </head>
 <body>
   <header>
-    <h1>Same Call, Better Agent</h1>
+    <h1>Tuning Voice Agents for Real Callers</h1>
     <div class="right">
       <span id="conn" data-state="connecting">connecting</span>
       <span id="lang"></span>
       <span id="state" data-state="idle">waiting</span>
-      <button type="button" id="micbtn" hidden>Mic live <kbd>M</kbd></button>
-      <button type="button" id="callbtn" hidden>Start call <kbd>S</kbd></button>
+      <button type="button" id="micbtn" hidden><span class="ico"></span><kbd>M</kbd></button>
+      <button type="button" id="callbtn" hidden><span class="ico"></span><kbd>S</kbd></button>
     </div>
   </header>
 
@@ -210,9 +221,9 @@
     <label class="sw"><input type="checkbox" data-toggle="bargeIn"><span class="track"></span><span class="lbl">barge-in</span><kbd>1</kbd></label>
     <label class="sw"><input type="checkbox" data-toggle="keyterms"><span class="track"></span><span class="lbl">keyterms</span><kbd>2</kbd></label>
     
-    <label class="sw"><input type="checkbox" data-toggle="smartEot"><span class="track"></span><span class="lbl">smart EOT</span><kbd>3</kbd></label>
+    <label class="sw"><input type="checkbox" data-toggle="smartEot"><span class="track"></span><span class="lbl">EOT</span><kbd>3</kbd></label>
     <label class="sw"><input type="checkbox" data-toggle="eagerEot"><span class="track"></span><span class="lbl">eager EOT</span><kbd>4</kbd></label>
-    <!-- Sliders removed 2026-10-04: the talk runs on the defaults (eager 0.5, eot 0.7, timeout 5000). -->
+    <!-- Sliders removed 2026-10-04: the talk runs on the defaults (eager 0.4, eot 0.75, timeout 5000). -->
     <label class="sw"><input type="checkbox" data-toggle="multilingual"><span class="track"></span><span class="lbl">multilingual</span><kbd>5</kbd></label>
     <span id="applied"></span>
     <span id="rejected"></span>
@@ -257,7 +268,8 @@
   </div>
 
   <footer>
-    <div class="stat spec"><span class="k">Speculative issued / used</span><span class="v" id="spec">0 / 0</span></div>
+    <div class="stat spec waited"><span class="k">Agent reply</span><span class="v" id="waited">–<small> ms</small></span></div>
+    <div class="stat spec"><span class="k">Thrown-away model calls</span><span class="v" id="spec">0</span></div>
     <div class="stat"><span class="k">End of turn</span><span class="v" id="eot">–<small> ms</small></span></div>
     <div class="stat"><span class="k">EOT p50 / p90 / p95</span><span class="v" id="eotp">–</span></div>
     <div class="stat"><span class="k">LLM first token</span><span class="v" id="ttft">–<small> ms</small></span></div>
@@ -273,7 +285,7 @@
   const el = { conn: $('conn'), lang: $('lang'), state: $('state'), caller: $('caller'), agent: $('agent'),
     bar: $('bar').querySelector('i'), conf: $('conf'), eot: $('eot'), eotp: $('eotp'), ttft: $('ttft'), ttfb: $('ttfb'),
     uptime: $('uptime'), reconnects: $('reconnects'), degraded: $('degraded'), events: $('events'),
-    applied: $('applied'), rejected: $('rejected'), spec: $('spec'),
+    applied: $('applied'), rejected: $('rejected'), spec: $('spec'), waited: $('waited'),
     barThr: $('bar').querySelector('b'), traceWrap: $('trace-wrap'), trLine: $('tr-line'),
     trThr: $('tr-thr'), trTicks: $('tr-ticks'), trFire: $('tr-fire'), trMeta: $('trace-meta') }
 
@@ -281,19 +293,33 @@
   let toggles = null
   let cards = {}
   let replaying = false
-  const specTurns = new Set()
-  let specUsed = 0
+  // Thrown-away model calls: eager guesses discarded before anyone heard them. Zeroed on every
+  // new call and every beat jump, so beat 4 always starts from 0.
+  let specWasted = 0
+  // Agent reply: from Flux's EndOfTurn to the first TTS byte of the reply, the part of the caller's
+  // wait that eager end of turn shortens. Measured 2026-10-06 on beat 4: about 800 to 1050 ms with
+  // eager off, 170 to 330 ms when the eager guess is promoted. The full wait (plus End of turn) swings
+  // with how the line is spoken, so it can't show the difference. Cue lines and the greeting answer
+  // no one, so they never count.
+  let waitFrom = null
+  const renderSpec = () => { el.spec.textContent = String(specWasted) }
   const tgSwitches = [...document.querySelectorAll('.sw input[data-toggle]')]
   const tgSliders = [...document.querySelectorAll('input[type=range][data-toggle]')]
 
   function sendToggle(name, value) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'toggle', name, value })) }
 
+  const SVG = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`
+  const MIC_BODY = '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>'
+  const ICON_MIC = SVG(MIC_BODY)
+  const ICON_MIC_OFF = SVG(MIC_BODY + '<line x1="3" y1="3" x2="21" y2="21"/>')
+  const ICON_PHONE = SVG('<path fill="currentColor" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>')
   const callBtn = document.getElementById('callbtn')
   let inCall = false
   function renderCallBtn() {
     callBtn.dataset.inCall = String(inCall)
     callBtn.disabled = false
-    callBtn.firstChild.textContent = inCall ? 'End call ' : 'Start call '
+    callBtn.querySelector('.ico').innerHTML = ICON_PHONE
+    callBtn.setAttribute('aria-label', inCall ? 'Call live. Press S to end it.' : 'No call. Press S to start one.')
     if (typeof renderMicBtn === 'function') renderMicBtn()
   }
   function toggleCall() {
@@ -308,7 +334,8 @@
   function renderMicBtn() {
     micBtn.hidden = callBtn.hidden || !inCall
     micBtn.dataset.muted = String(micMuted)
-    micBtn.firstChild.textContent = micMuted ? 'Mic off, talking to the room ' : 'Mic live '
+    micBtn.querySelector('.ico').innerHTML = micMuted ? ICON_MIC_OFF : ICON_MIC
+    micBtn.setAttribute('aria-label', micMuted ? 'Mic off, talking to the room. Press M to go live.' : 'Mic live. Press M to mute.')
   }
   function toggleMic() {
     if (micBtn.hidden || !ws || ws.readyState !== 1) return
@@ -420,7 +447,7 @@
   let frozen = null
 
   function freezeTrace(endEvent) {
-    const thr = toggles ? Number(toggles.eotThreshold) : 0.7
+    const thr = toggles ? Number(toggles.eotThreshold) : 0.75
     el.trThr.setAttribute('y1', String(100 - thr * 100))
     el.trThr.setAttribute('y2', String(100 - thr * 100))
 
@@ -613,6 +640,7 @@
         freezeTrace(e)
         turnStartT = null
         ms(el.eot, e.latencyMs)
+        waitFrom = e.t
         eotSamples.push(e.latencyMs)
         el.eotp.textContent = `${pct(eotSamples, 0.5)} / ${pct(eotSamples, 0.9)} / ${pct(eotSamples, 0.95)}`
         break
@@ -620,7 +648,7 @@
         el.lang.replaceChildren(...e.languages.map((l) => { const s = document.createElement('span'); s.textContent = l; return s }))
         el.lang.classList.remove('changed'); void el.lang.offsetWidth; el.lang.classList.add('changed')
         break
-      case 'call.started': railDone = new Set(); railBeat = 0; railFloor = 0; renderRail(); inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; fitTranscript(true); break
+      case 'call.started': specWasted = 0; renderSpec(); waitFrom = null; el.waited.innerHTML = '–<small> ms</small>'; railDone = new Set(); railBeat = 0; railFloor = 0; renderRail(); inCall = true; renderCallBtn(); el.lang.replaceChildren(); callStartedAt = e.t; turnStartT = null; trace = []; frozen = null; el.traceWrap.classList.remove('on'); el.caller.textContent = 'Listening…'; el.caller.classList.add('empty'); el.agent.textContent = ''; fitTranscript(true); break
       case 'agent.reply': el.agent.textContent = e.text; el.agent.classList.remove('empty'); fitTranscript(true); break
       case 'tts.interrupt':
         if (e.by === 'seek') break
@@ -631,12 +659,15 @@
         el.agent.append(cut)
         fitTranscript(true)
         break
-      case 'tts.firstByte': ms(el.ttfb, e.ttfbMs); break
+      case 'tts.firstByte':
+        ms(el.ttfb, e.ttfbMs)
+        if (waitFrom !== null && e.turnId && !String(e.turnId).startsWith('seek') && e.turnId !== 'greeting') { ms(el.waited, e.t - waitFrom); waitFrom = null }
+        break
       case 'agent.progress':
         railDone = new Set(e.done)
         for (const i of railDone) railBeat = Math.max(railBeat, beatOfStep(i))
         renderRail(); break
-      case 'agent.seeked':
+      case 'agent.seeked': specWasted = 0; renderSpec(); waitFrom = null
         // Each beat starts on a clean screen, so the room reads it as its own small demo.
         seekingUntil = Date.now() + 2500
         railBeat = beatOfStep(e.step)
@@ -662,8 +693,8 @@
         break
       case 'toggle.changed': if (toggles) { const before = toggles[e.name]; toggles[e.name] = e.value; renderToggles(); onToggleCard(e.name, before, e.value) } break
       case 'stt.configureSent': if (!replaying) setWire('→ sent on the open socket', JSON.stringify(e.message).slice(0, 160), ''); break
-      case 'llm.speculativeStart': specTurns.add(e.turnId); el.spec.textContent = `${specTurns.size} / ${specUsed}`; break
-      case 'llm.firstToken': if (specTurns.has(e.turnId)) { specUsed += 1; el.spec.textContent = `${specTurns.size} / ${specUsed}` } ms(el.ttft, e.ttftMs); break
+      case 'llm.speculativeCancel': specWasted += 1; renderSpec(); break
+      case 'llm.firstToken': ms(el.ttft, e.ttftMs); break
     }
     logLines.push(JSON.stringify(e)); if (logLines.length > 200) logLines.shift()
     el.events.textContent = logLines.slice(-40).join('\n')
@@ -737,7 +768,7 @@
     ws.addEventListener('message', (msg) => {
       let frame; try { frame = JSON.parse(msg.data) } catch { return }
       if (frame.type === 'replay') {
-        specTurns.clear(); specUsed = 0
+        specWasted = 0; renderSpec()
         cards = (frame.snapshot && frame.snapshot.cards) || {}
         railScript = (frame.snapshot && frame.snapshot.script) || []; railBeats = (frame.snapshot && frame.snapshot.beats) || []; railDone = new Set(); renderRail()
         replaying = true

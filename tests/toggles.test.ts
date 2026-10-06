@@ -5,7 +5,7 @@ import { DEFAULT_TOGGLES, ToggleStore, keytermsFromEnv, validateToggle } from '.
 import { fluxParamsFor, sttModelFor } from '../src/call.ts'
 
 test('eager above eot is unreachable, in either order', () => {
-  const t = { ...DEFAULT_TOGGLES }
+  const t = { ...DEFAULT_TOGGLES, eotThreshold: 0.7 }
   const up = validateToggle(t, 'eagerEotThreshold', 0.8)
   assert.equal(up.ok, false)
   const down = validateToggle({ ...t, eagerEotThreshold: 0.6 }, 'eotThreshold', 0.5)
@@ -47,7 +47,7 @@ test('keyterms are independent of turn detection, and eager rides on smartEot', 
   const both = fluxParamsFor(
     { ...DEFAULT_TOGGLES, keyterms: true, eagerEot: true, smartEot: true }, 'flux-general-en', terms)
   assert.deepEqual(both.keyterms, terms)
-  assert.equal(both.eagerEotThreshold, 0.5)
+  assert.equal(both.eagerEotThreshold, DEFAULT_TOGGLES.eagerEotThreshold)
 
   assert.equal(sttModelFor({ ...DEFAULT_TOGGLES, multilingual: true }, 'flux-general-en'), 'flux-general-multi')
 })

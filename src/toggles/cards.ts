@@ -80,7 +80,7 @@ export function codeCards(keyterms: readonly string[]): Record<CardName, CodeCar
       ref: { file: 'src/stt/flux.ts', find: "message['keyterms'] = next.keyterms" },
     },
     smartEot: {
-      title: 'Smart end of turn',
+      title: 'End of turn',
       gist: 'A pause is not the end of a sentence. Let the model decide.',
       when: {
         on: 'Nearly always. Turn it up for "describe what is wrong".',
@@ -92,7 +92,7 @@ export function codeCards(keyterms: readonly string[]): Record<CardName, CodeCar
         l('-', "stt.on('Update', (turn) => {"),
         l('-', '  clearTimeout(timer)'),
         l('-', '  timer = setTimeout(() =>'),
-        l('-', '    respond(turn.transcript), 1200)'),
+        l('-', '    respond(turn.transcript), 1000)'),
         l('-', '})'),
         l(' ', ''),
         l(' ', '// after: Flux decides the turn is over'),
@@ -105,8 +105,8 @@ export function codeCards(keyterms: readonly string[]): Record<CardName, CodeCar
       title: 'Eager end of turn',
       gist: 'Start thinking before they finish. Throw it away if they keep going.',
       when: {
-        on: 'Quick, harmless answers: hours, prices, what to bring.',
-        off: 'Right before a step that books or charges something.',
+        on: 'Offering times and reading them back: just words.',
+        off: 'The confirm step: booking, charging, sending.',
       },
       lines: [
         l(' ', 'stt.send({'),
@@ -135,6 +135,8 @@ export function codeCards(keyterms: readonly string[]): Record<CardName, CodeCar
         l(' ', "const url = new URL(DEEPGRAM + '/v2/listen')"),
         l('-', "url.searchParams.set('model', 'flux-general-en')"),
         l('+', "url.searchParams.set('model', 'flux-general-multi')"),
+        l('+', "url.searchParams.append('language_hint', 'en')"),
+        l('+', "url.searchParams.append('language_hint', 'es')"),
         l(' ', "url.searchParams.set('encoding', 'linear16')"),
         l(' ', "url.searchParams.set('sample_rate', '8000')"),
         l(' ', ''),

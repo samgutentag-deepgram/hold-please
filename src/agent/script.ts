@@ -64,14 +64,14 @@ export const SCRIPT: ScriptStep[] = [
   {
     beat: 'beat4', label: 'Friday at ten… make it one',
     match: ['friday', 'make it one'],
-    caller: 'Can I bring him in Friday at ten, actually, make it one.',
-    agent: "You'd like to bring Otto in on Friday at one in the afternoon. I've passed that to the front desk, and they'll text you to confirm the time today. Is there anything else I can help with?",
+    caller: "Can I bring him in Friday at ten, actually, hmm, let's make it one.",
+    agent: "You'd like to bring Otto in on Friday at one in the afternoon. Is there anything else I can help with?",
   },
   {
     beat: 'beat5', label: '¿Algún veterinario habla español?',
     match: ['español', 'espanol', 'spanish', 'habla', 'veterinario'],
     caller: '¿Tienen algún veterinario que hable español?',
-    agent: "Yes, Doctor Okafor speaks Spanish. I've passed that to the front desk, and they'll text you to set it up. Is there anything else I can help with?",
+    agent: "Yes, Doctor Okafor speaks Spanish. Is there anything else I can help with?",
   },
 ]
 
@@ -79,7 +79,7 @@ export const BEATS: { id: string; title: string; key?: string }[] = [
   { id: 'opener', title: 'Opener' },
   { id: 'beat1', title: 'Beat 1 · barge-in', key: '1' },
   { id: 'beat2', title: 'Beat 2 · keyterms', key: '2' },
-  { id: 'beat3', title: 'Beat 3 · smart EOT', key: '3' },
+  { id: 'beat3', title: 'Beat 3 · EOT', key: '3' },
   { id: 'beat4', title: 'Beat 4 · eager EOT', key: '4' },
   { id: 'beat5', title: 'Bonus · multilingual', key: '5' },
 ]

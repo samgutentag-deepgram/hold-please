@@ -34,15 +34,15 @@ export const DEFAULT_TOGGLES: Readonly<Toggles> = Object.freeze({
   keyterms: false,
   eagerEot: false,
   smartEot: false,
-  eagerEotThreshold: 0.5,
-  eotThreshold: 0.7,
+  eagerEotThreshold: 0.4,
+  eotThreshold: 0.75,
   eotTimeoutMs: 5000,
   multilingual: false,
 })
 
 /** How long the silence timer waits before calling the turn over when smartEot is off.
  * Deliberately dumb: this is how most first voice agents are actually built. */
-export const NAIVE_SILENCE_MS = 1200
+export const NAIVE_SILENCE_MS = 1000
 
 export const TOGGLE_LIMITS = {
   eagerEotThreshold: { min: 0.3, max: 0.9, step: 0.05 },

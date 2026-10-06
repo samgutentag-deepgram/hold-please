@@ -99,7 +99,10 @@ export class Call {
       const wanted = sttModelFor(next, this.config.deepgram.sttModel)
       if (wanted === this.stt.params.model) return
       await this.sttSocket.close()
-      const replacement = new FluxStt({ apiKey: this.config.deepgram.apiKey!, bus: this.bus, params: { ...after, model: wanted } })
+      // The clinic expects English and Spanish callers, so the multilingual connection is told so.
+      // Without the hints Flux heard "veterinario" as "inventario" and "escenario" (2026-10-06).
+      const hints = wanted === 'flux-general-multi' ? { languageHints: ['en', 'es'] } : {}
+      const replacement = new FluxStt({ apiKey: this.config.deepgram.apiKey!, bus: this.bus, params: { ...after, model: wanted, ...hints } })
       this.sttSocket = replacement
       this.loop.attachStt(replacement)
       await replacement.connect()
