@@ -1,6 +1,4 @@
-# Same Call, Better Agent
-
-Tuning a voice agent live, without hanging up.
+# Tuning Voice Agents for Real Callers
 
 **This demo shows the same voice agent break on real callers and get fixed mid-call, without a
 reconnect.**
