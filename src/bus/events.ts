@@ -1,6 +1,6 @@
 import { now } from './clock.ts'
 
-// The event contract from docs/SPEC.md. Everything the dashboard shows comes from this union.
+// The event contract. Everything the dashboard shows comes from this union.
 // Additions to the spec's list, each with a reason:
 //   process.started  the one event a process can emit before a call exists (Phase 0 exit criterion)
 //   agent.state      the state pill needs an explicit source rather than inferring from other events

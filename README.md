@@ -203,36 +203,23 @@ node --env-file=.env scripts/multi-probe.mjs "Guten Tag, my name is Sam."
 
 ## Status
 
-Phases 0 to 4 of 7 are built and 36 tests pass. The spine runs end to end against the local
-harness: audio in, Flux STT with live `Configure`, one LLM turn, Flux TTS out, barge-in with
-`text_spoken`, five live switches and three live sliders, the four-zone dashboard, and a
-**Start call** button and presenter mic mute so the call begins when the presenter says so.
-
-On stage the demo runs from the laptop microphone with no phone number (decided 2026-09-29). The
-Vonage leg stays in the code and is not used in the talk.
+The spine runs end to end against the local harness: audio in, Flux STT with live `Configure`, one
+LLM turn, Flux TTS out, barge-in with `text_spoken`, five live switches and three live sliders, the
+four-zone dashboard, and a **Start call** button and presenter mic mute so the call begins when the
+presenter says so.
 
 Beat 2's keyterm result was first measured at 16 kHz on a studio mic and has since been
 revalidated at 8 kHz, which is the rate local mode runs at and the rate a phone line delivers.
 
-Not done yet, and honest about it:
-
-- It has never answered a real phone call. The Vonage path is untested end to end.
-- All four beats have not yet been run back to back in one timed take on the presenter's voice.
-- Phase 2's exit criterion, every event in the union observed at least once, is not met.
-
-`docs/PHASES.md` has each phase with an exit criterion you can demonstrate rather than assert.
+Not done yet, and honest about it: it has never answered a real phone call. The Vonage path is in
+the code and untested end to end.
 
 ## Docs
 
 | File | What it holds |
 |---|---|
-| `docs/README.md` | Orientation, decisions already made, hard constraints |
-| `docs/RUN-OF-SHOW.md` | The 20 minutes, beat by beat. The requirements source |
-| `docs/SPEC.md` | Architecture, modules, the event contract, the toggle contract |
-| `docs/API-NOTES.md` | Verified Deepgram and Vonage facts, and the traps |
-| `docs/PHASES.md` | Build phases with exit criteria |
 | `docs/ENV.md` | Every environment variable |
-| `docs/SCRIPT.md` | What the presenter says, beat by beat |
+| `docs/API-NOTES.md` | Verified Deepgram and Vonage facts, and the traps |
 
 ## License
 

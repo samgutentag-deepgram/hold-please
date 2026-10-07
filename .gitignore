@@ -6,8 +6,13 @@ node_modules/
 *.log
 recordings/
 
-# The Remotion package has its own pnpm root. Its source belongs in the repo; its dependencies
-# and its renders do not. Blanket-ignoring video/ silently blocked that session from committing.
-video/node_modules/
-video/out/
-video/.remotion/
+# Talk production material stays local: the stage script, run of show, build plan, agent
+# instructions, rehearsal probe and the Remotion video. The public repo is only what someone needs
+# to run the demo themselves.
+AGENTS.md
+CLAUDE.md
+docs/*
+!docs/ENV.md
+!docs/API-NOTES.md
+scripts/step-probe.ts
+video/

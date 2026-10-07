@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tuning Voice Agents for Real Callers</title>
 <style>
-  /* First cut of the four-zone layout from docs/SPEC.md. Everything inline on purpose: the
+  /* The four-zone layout. Everything inline on purpose: the
      room's network is not ours, so the page loads with zero external requests.
      Zones: 1 transcript (dominant), 2 state pill, 3 confidence bar, 4 stats strip. */
   :root {
@@ -543,7 +543,7 @@
   const THRESHOLD_WIRE = { eotThreshold: 'eot_threshold', eagerEotThreshold: 'eager_eot_threshold', eotTimeoutMs: 'eot_timeout_ms' }
   const fmt = (name, v) => name === 'eotTimeoutMs' ? String(v) : Number(v).toFixed(2)
 
-  // Same idea as each switch's on/off line in cards.ts, for a dial. From docs/SCRIPT.md.
+  // Same idea as each switch's on/off line in cards.ts, for a dial.
   const THRESHOLD_WHEN = {
     eotThreshold: { up: 'Describing what is wrong with him, reading out an address.', down: 'All you need is a yes.' },
     eagerEotThreshold: { up: 'Fewer wasted guesses, a slightly slower reply.', down: 'Guesses sooner. Faster, and more model calls.' },

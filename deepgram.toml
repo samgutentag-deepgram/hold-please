@@ -1,5 +1,5 @@
 [meta]
-title = "Your Demo Works. Your Callers Don't."
+title = "Tuning Voice Agents for Real Callers"
 description = "Live voice-agent failure demo: break a Flux agent four ways on a real phone call and fix each one on the open socket"
 author = "Sam Gutentag <sam.gutentag@deepgram.com>"
 useCase = "flux"
